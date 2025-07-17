@@ -17,7 +17,7 @@
         // Try to detect if we're in development or production
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
           apiUrl = "http://localhost:3000"
-        } else if (window.location.protocol === "file:") {
+         } else if (window.location.protocol === "file:" || window.location.protocol === "https:" || window.location.protocol === "http:") {
           // Handle file:// protocol for local testing
           apiUrl = "http://localhost:3000"
           container.innerHTML = `

@@ -423,7 +423,7 @@ function FormElementRenderer({
                 </Button>
               </div>
             </div>
-            
+
             <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <Badge variant="secondary" className="text-xs">
                 {element.type}
@@ -489,7 +489,7 @@ function DropZone({
           </div>
         </div>
       )}
-      
+
       {elements.length === 0 ? (
         <div className="text-center text-gray-500 py-12">
           <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
@@ -611,7 +611,7 @@ export default function FormBuilder() {
       label: `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} Field`,
       required: false,
       width: "w-full", // Default to full width
-      ...(item.type === "select" || item.type === "radio" ? { options: ["Option 1", "Option 2"] } : {}),
+      ...(item.type === "select" || item.type === "radio" ? { options: ["Option 1", "Option 2", "Option 3"] } : {}),
       ...(item.type === "checkbox" ? { label: "Check this box" } : {}), // Default label for checkbox
     }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { connectToDatabase } from "@/lib/mongodb"
+import clientPromise from "@/lib/mongodb"
 import jwt from "jsonwebtoken"
 
 export async function GET(request: NextRequest) {
@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
-    const { db } = await connectToDatabase()
+    const client = await clientPromise
+    const db = client.db("formcraft")
 
     const user = await db.collection("users").findOne(
       { _id: decoded.userId },

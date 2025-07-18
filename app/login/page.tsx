@@ -22,7 +22,7 @@ export default function LoginPage() {
   useEffect(() => {
     const token = document.cookie
       .split("; ")
-      .find((row) => row.startsWith("auth-token="))
+      .find((row) => row.startsWith("token="))
       ?.split("=")[1]
 
     if (token) {
@@ -57,7 +57,7 @@ export default function LoginPage() {
         const expires = new Date()
         expires.setDate(expires.getDate() + 7) // 7 days
 
-        document.cookie = `auth-token=${data.token}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`
+        document.cookie = `token=${data.token}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`
 
         // Small delay to ensure cookie is set
         setTimeout(() => {

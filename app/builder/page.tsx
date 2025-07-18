@@ -16,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Trash2, Settings, Save, Eye, Plus, X } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils" // Corrected import path
+import { Badge } from "@/components/ui/badge"
 
 interface FormElement {
   id: string
@@ -499,29 +500,42 @@ function DropZone({
           <p className="text-sm">Drag elements from the sidebar to create your form</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {elements.map((element, index) => (
-            <div key={element.id} className={cn(
-              "relative",
-              element.width === "w-1/2" && index % 2 === 0 && elements[index + 1]?.width === "w-1/2" 
-                ? "grid grid-cols-2 gap-4 col-span-full" 
-                : ""
-            )}>
-              <FormElementRenderer 
-                element={element} 
-                onUpdate={onUpdate} 
-                onDelete={onDelete} 
-              />
-              {element.width === "w-1/2" && elements[index + 1]?.width === "w-1/2" && (
+        <div className="space-y-4">
+          {elements.map((element, index) => {
+            // Skip elements already rendered as pairs
+            if (element.width === "w-1/2" && index > 0 && elements[index - 1]?.width === "w-1/2") {
+              return null;
+            }
+            
+            // Check if this half-width element should be paired with the next
+            if (element.width === "w-1/2" && elements[index + 1]?.width === "w-1/2") {
+              return (
+                <div key={`pair-${element.id}`} className="grid grid-cols-2 gap-4">
+                  <FormElementRenderer 
+                    element={element} 
+                    onUpdate={onUpdate} 
+                    onDelete={onDelete} 
+                  />
+                  <FormElementRenderer 
+                    element={elements[index + 1]} 
+                    onUpdate={onUpdate} 
+                    onDelete={onDelete} 
+                  />
+                </div>
+              );
+            }
+            
+            // Render single element (full width or unpaired half width)
+            return (
+              <div key={element.id} className={element.width === "w-1/2" ? "w-1/2" : "w-full"}>
                 <FormElementRenderer 
-                  key={elements[index + 1].id}
-                  element={elements[index + 1]} 
+                  element={element} 
                   onUpdate={onUpdate} 
                   onDelete={onDelete} 
                 />
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
@@ -540,16 +554,45 @@ function FormPreview({ formConfig }: { formConfig: FormConfig }) {
       {formConfig.subtitle && (
         <p className="text-gray-600 mb-4">{formConfig.subtitle}</p>
       )}
-      <form onSubmit={handleSubmit} className="flex flex-wrap gap-4">
-        {formConfig.elements.map((element) => (
-          <FormElementRenderer
-            key={element.id}
-            element={element}
-            onUpdate={() => {}}
-            onDelete={() => {}}
-            isPreview={true}
-          />
-        ))}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {formConfig.elements.map((element, index) => {
+          // Skip elements already rendered as pairs
+          if (element.width === "w-1/2" && index > 0 && formConfig.elements[index - 1]?.width === "w-1/2") {
+            return null;
+          }
+          
+          // Check if this half-width element should be paired with the next
+          if (element.width === "w-1/2" && formConfig.elements[index + 1]?.width === "w-1/2") {
+            return (
+              <div key={`preview-pair-${element.id}`} className="grid grid-cols-2 gap-4">
+                <FormElementRenderer
+                  element={element}
+                  onUpdate={() => {}}
+                  onDelete={() => {}}
+                  isPreview={true}
+                />
+                <FormElementRenderer
+                  element={formConfig.elements[index + 1]}
+                  onUpdate={() => {}}
+                  onDelete={() => {}}
+                  isPreview={true}
+                />
+              </div>
+            );
+          }
+          
+          // Render single element
+          return (
+            <div key={element.id} className={element.width === "w-1/2" ? "w-1/2" : "w-full"}>
+              <FormElementRenderer
+                element={element}
+                onUpdate={() => {}}
+                onDelete={() => {}}
+                isPreview={true}
+              />
+            </div>
+          );
+        })}
         {formConfig.elements.length > 0 && (
           <Button type="submit" className="w-full mt-4">
             {formConfig.buttonText || "Submit Form"}

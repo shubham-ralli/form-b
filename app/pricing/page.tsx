@@ -1,266 +1,185 @@
-
 "use client"
 
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Check, X } from "lucide-react"
-import Link from "next/link"
-import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-interface User {
+interface Plan {
   id: string
-  email: string
-  plan: "free" | "monthly" | "yearly"
-  formsUsed: number
-  submissionsThisMonth: number
-  subscriptionExpiry?: string
+  name: string
+  price: number
+  billing: string
+  features: {
+    maxForms: number
+    maxSubmissions: number
+    responseRate: boolean
+    analytics: boolean
+    customization: boolean
+  }
 }
 
 export default function PricingPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [currentPlan, setCurrentPlan] = useState<string>("free")
+  const [loading, setLoading] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
-    fetchUser()
+    fetchPlans()
+    fetchCurrentPlan()
   }, [])
 
-  const fetchUser = async () => {
+  const fetchPlans = async () => {
+    try {
+      const response = await fetch("/api/plans")
+      if (response.ok) {
+        const data = await response.json()
+        setPlans(data.plans)
+      }
+    } catch (error) {
+      console.error("Error fetching plans:", error)
+    }
+  }
+
+  const fetchCurrentPlan = async () => {
     try {
       const response = await fetch("/api/auth/me")
       if (response.ok) {
-        const userData = await response.json()
-        setUser(userData)
+        const data = await response.json()
+        setCurrentPlan(data.plan || "free")
       }
     } catch (error) {
-      console.error("Error fetching user:", error)
+      console.error("Error fetching current plan:", error)
+    }
+  }
+
+  const upgradePlan = async (planId: string) => {
+    setLoading(true)
+    try {
+      const response = await fetch("/api/plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId })
+      })
+
+      if (response.ok) {
+        setCurrentPlan(planId)
+        alert("Plan updated successfully!")
+        router.refresh()
+      } else {
+        const error = await response.json()
+        alert(error.error || "Failed to update plan")
+      }
+    } catch (error) {
+      alert("Error updating plan")
+      console.error(error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleUpgrade = async (plan: "monthly" | "yearly") => {
-    if (!user) {
-      router.push("/login")
-      return
-    }
-
-    try {
-      const response = await fetch("/api/upgrade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan })
-      })
-
-      if (response.ok) {
-        alert(`Successfully upgraded to ${plan} plan!`)
-        fetchUser()
-      } else {
-        alert("Failed to upgrade plan")
-      }
-    } catch (error) {
-      console.error("Error upgrading:", error)
-      alert("Error upgrading plan")
-    }
-  }
-
-  const plans = [
-    {
-      name: "Free",
-      price: "$0",
-      period: "forever",
-      description: "Perfect for getting started",
-      features: [
-        "Up to 3 forms",
-        "10 submissions per month",
-        "Basic form fields",
-        "Email notifications",
-        "Basic analytics"
-      ],
-      limitations: [
-        "Limited customization",
-        "FormCraft branding"
-      ],
-      buttonText: "Get Started Free",
-      planType: "free" as const,
-      popular: false
-    },
-    {
-      name: "Pro Monthly",
-      price: "$5",
-      period: "month", 
-      description: "For growing businesses",
-      features: [
-        "Unlimited forms",
-        "25,000 submissions per month",
-        "All form field types",
-        "Custom branding",
-        "Advanced analytics",
-        "Export to CSV",
-        "Priority support",
-        "Custom thank you pages"
-      ],
-      limitations: [],
-      buttonText: "Start Monthly Plan",
-      planType: "monthly" as const,
-      popular: true
-    },
-    {
-      name: "Pro Yearly",
-      price: "$4",
-      period: "month",
-      yearlyPrice: "$48",
-      description: "Best value for serious users",
-      features: [
-        "Unlimited forms",
-        "25,000 submissions per month", 
-        "All form field types",
-        "Custom branding",
-        "Advanced analytics",
-        "Export to CSV",
-        "Priority support",
-        "Custom thank you pages",
-        "2 months free!"
-      ],
-      limitations: [],
-      buttonText: "Start Yearly Plan",
-      planType: "yearly" as const,
-      popular: false
-    }
-  ]
-
-  const getCurrentPlanLimits = () => {
-    if (!user) return { formsLimit: 3, submissionsLimit: 10 }
-    
-    switch (user.plan) {
-      case "free":
-        return { formsLimit: 3, submissionsLimit: 10 }
-      case "monthly":
-      case "yearly":
-        return { formsLimit: -1, submissionsLimit: 25000 } // -1 means unlimited
-      default:
-        return { formsLimit: 3, submissionsLimit: 10 }
-    }
-  }
-
-  const limits = getCurrentPlanLimits()
-
-  if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>
-  }
-
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold text-gray-900">Choose Your Plan</h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Start free and upgrade as you grow. No hidden fees, cancel anytime.
-        </p>
-        
-        {user && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-            <h3 className="font-semibold text-blue-900">Current Usage</h3>
-            <p className="text-blue-700">
-              Forms: {user.formsUsed}/{limits.formsLimit === -1 ? "Unlimited" : limits.formsLimit}
-            </p>
-            <p className="text-blue-700">
-              Submissions this month: {user.submissionsThisMonth}/{limits.submissionsLimit === -1 ? "Unlimited" : limits.submissionsLimit}
-            </p>
-            <p className="text-sm text-blue-600 mt-2">
-              Current plan: <span className="font-semibold capitalize">{user.plan}</span>
-            </p>
-          </div>
-        )}
-      </div>
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Choose Your Plan
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Start with our free plan or upgrade to Pro for unlimited forms and advanced features.
+          </p>
+        </div>
 
-      {/* Pricing Cards */}
-      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        {plans.map((plan) => (
-          <Card key={plan.name} className={`relative ${plan.popular ? 'border-blue-500 shadow-lg' : ''}`}>
-            {plan.popular && (
-              <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-blue-500">
-                Most Popular
-              </Badge>
-            )}
-            
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">{plan.name}</CardTitle>
-              <div className="flex items-baseline justify-center gap-1">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                <span className="text-gray-600">/{plan.period}</span>
-              </div>
-              {plan.yearlyPrice && (
-                <p className="text-sm text-gray-500">
-                  Billed yearly: {plan.yearlyPrice}
-                </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {plans.map((plan) => (
+            <Card key={plan.id} className={`relative ${plan.id.includes("pro") ? "border-blue-500 shadow-lg" : ""}`}>
+              {plan.id === "pro-yearly" && (
+                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500">
+                  Save 20%
+                </Badge>
               )}
-              <CardDescription>{plan.description}</CardDescription>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                <h4 className="font-semibold text-green-600">What's included:</h4>
-                {plan.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">{feature}</span>
-                  </div>
-                ))}
-              </div>
-              
-              {plan.limitations.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-semibold text-red-600">Limitations:</h4>
-                  {plan.limitations.map((limitation, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <X className="h-4 w-4 text-red-500" />
-                      <span className="text-sm">{limitation}</span>
-                    </div>
-                  ))}
+
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
+                <div className="mt-4">
+                  <span className="text-4xl font-bold">${plan.price}</span>
+                  <span className="text-gray-600">/{plan.billing}</span>
                 </div>
-              )}
-              
-              <Button 
-                className={`w-full ${plan.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
-                variant={plan.popular ? 'default' : 'outline'}
-                onClick={() => {
-                  if (plan.planType === "free") {
-                    router.push("/register")
-                  } else {
-                    handleUpgrade(plan.planType)
-                  }
-                }}
-                disabled={user?.plan === plan.planType}
-              >
-                {user?.plan === plan.planType ? "Current Plan" : plan.buttonText}
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                {plan.id === "pro-yearly" && (
+                  <p className="text-sm text-green-600">Equivalent to $4/month</p>
+                )}
+              </CardHeader>
 
-      {/* FAQ Section */}
-      <div className="max-w-2xl mx-auto space-y-6">
-        <h2 className="text-2xl font-bold text-center">Frequently Asked Questions</h2>
-        
-        <div className="space-y-4">
-          <div className="border rounded-lg p-4">
-            <h3 className="font-semibold mb-2">Can I change plans anytime?</h3>
-            <p className="text-gray-600">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
-          </div>
-          
-          <div className="border rounded-lg p-4">
-            <h3 className="font-semibold mb-2">What happens if I exceed my submission limit?</h3>
-            <p className="text-gray-600">Your forms will continue to work, but you'll be prompted to upgrade to handle additional submissions.</p>
-          </div>
-          
-          <div className="border rounded-lg p-4">
-            <h3 className="font-semibold mb-2">What's the difference between monthly and yearly plans?</h3>
-            <p className="text-gray-600">Yearly plans offer the same features but at a discounted rate - you save $12 per year!</p>
-          </div>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span>
+                      {plan.features.maxForms === -1 ? "Unlimited" : plan.features.maxForms} Forms
+                    </span>
+                  </div>
+
+                  <div className="flex items-center">
+                    <Check className="h-5 w-5 text-green-500 mr-3" />
+                    <span>{plan.features.maxSubmissions.toLocaleString()} Submissions/month</span>
+                  </div>
+
+                  <div className="flex items-center">
+                    {plan.features.responseRate ? (
+                      <Check className="h-5 w-5 text-green-500 mr-3" />
+                    ) : (
+                      <X className="h-5 w-5 text-gray-400 mr-3" />
+                    )}
+                    <span>Response Rate Analytics</span>
+                  </div>
+
+                  <div className="flex items-center">
+                    {plan.features.analytics ? (
+                      <Check className="h-5 w-5 text-green-500 mr-3" />
+                    ) : (
+                      <X className="h-5 w-5 text-gray-400 mr-3" />
+                    )}
+                    <span>Advanced Analytics</span>
+                  </div>
+
+                  <div className="flex items-center">
+                    {plan.features.customization ? (
+                      <Check className="h-5 w-5 text-green-500 mr-3" />
+                    ) : (
+                      <X className="h-5 w-5 text-gray-400 mr-3" />
+                    )}
+                    <span>Custom Styling</span>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  {currentPlan === plan.id ? (
+                    <Button className="w-full" disabled>
+                      Current Plan
+                    </Button>
+                  ) : (
+                    <Button 
+                      className="w-full" 
+                      variant={plan.id === "free" ? "outline" : "default"}
+                      onClick={() => upgradePlan(plan.id)}
+                      disabled={loading}
+                    >
+                      {plan.id === "free" ? "Downgrade to Free" : "Upgrade to Pro"}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="text-center mt-12">
+          <p className="text-gray-600">
+            Need a custom solution? <a href="/help" className="text-blue-600 hover:underline">Contact us</a>
+          </p>
         </div>
       </div>
     </div>

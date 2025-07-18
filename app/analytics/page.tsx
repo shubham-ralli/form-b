@@ -20,13 +20,10 @@ interface Submission {
 }
 
 export default function AnalyticsPage() {
-  const [analyticsData, setAnalyticsData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState("30") // days
-  const [selectedForm, setSelectedForm] = useState<string>("all")
   const [forms, setForms] = useState<Form[]>([])
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [selectedFormId, setSelectedFormId] = useState<string>("all")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchData()
@@ -55,29 +52,6 @@ export default function AnalyticsPage() {
   const todaySubmissions = filteredSubmissions.filter(
     (sub) => new Date(sub.submittedAt).toDateString() === new Date().toDateString(),
   ).length
-
-  useEffect(() => {
-    fetchAnalytics()
-  }, [timeRange, selectedForm])
-
-  const fetchAnalytics = async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      if (timeRange !== "all") params.append("days", timeRange)
-      if (selectedForm !== "all") params.append("formId", selectedForm)
-
-      const response = await fetch(`/api/analytics?${params.toString()}`)
-      if (response.ok) {
-        const data = await response.json()
-        setAnalyticsData(data)
-      }
-    } catch (error) {
-      console.error("Error fetching analytics:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   if (loading) {
     return (

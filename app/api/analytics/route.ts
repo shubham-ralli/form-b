@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
 import jwt from "jsonwebtoken"
@@ -14,116 +15,48 @@ export async function GET(request: NextRequest) {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
-    const { searchParams } = new URL(request.url)
-    const days = searchParams.get("days")
-    const formId = searchParams.get("formId")
-
     const client = await clientPromise
     const db = client.db("formcraft")
 
-    // Build query filters
-    let formQuery: any = { userId: new ObjectId(decoded.userId) }
-    if (formId && formId !== "all") {
-      formQuery._id = new ObjectId(formId)
-    }
+    // Get current month start date
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    // Get user's forms
-    const forms = await db.collection("forms").find(formQuery).toArray()
-    const formIds = forms.map(form => form._id.toString())
-
-    // Build submission query with time filter
-    let submissionQuery: any = { formId: { $in: formIds } }
-    if (days && days !== "all") {
-      const daysAgo = new Date()
-      daysAgo.setDate(daysAgo.getDate() - parseInt(days))
-      submissionQuery.createdAt = { $gte: daysAgo }
-    }
-
-    // Get submissions
-    const submissions = await db.collection("submissions").find(submissionQuery).toArray()
-
-    // Calculate analytics
-    const totalForms = forms.length
-    const totalSubmissions = submissions.length
-    const activeForms = forms.filter(form => form.isActive).length
-
-    // Calculate monthly submissions
-    const currentMonth = new Date()
-    currentMonth.setDate(1)
-    currentMonth.setHours(0, 0, 0, 0)
-
-    const monthlySubmissions = submissions.filter(sub => 
-      new Date(sub.createdAt) >= currentMonth
-    ).length
-
-    // Bot detection analytics
-    const botSubmissions = submissions.filter(sub => sub.isBotDetected).length
-    const humanSubmissions = totalSubmissions - botSubmissions
-    const botRate = totalSubmissions > 0 ? (botSubmissions / totalSubmissions) * 100 : 0
-
-    // Location analytics
-    const locationStats = submissions.reduce((acc: any, sub: any) => {
-      const location = sub.location || 'Unknown'
-      acc[location] = (acc[location] || 0) + 1
-      return acc
-    }, {})
-
-    // Daily submission trends (last 30 days)
-    const dailyStats = []
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-      const dayEnd = new Date(dayStart)
-      dayEnd.setDate(dayEnd.getDate() + 1)
-
-      const daySubmissions = submissions.filter(sub => {
-        const subDate = new Date(sub.createdAt)
-        return subDate >= dayStart && subDate < dayEnd
-      }).length
-
-      dailyStats.push({
-        date: dayStart.toISOString().split('T')[0],
-        submissions: daySubmissions
+    // Aggregate analytics data
+    const [totalForms, totalSubmissions, thisMonthSubmissions] = await Promise.all([
+      db.collection("forms").countDocuments({ userId: decoded.userId }),
+      db.collection("submissions").countDocuments({ userId: decoded.userId }),
+      db.collection("submissions").countDocuments({
+        userId: decoded.userId,
+        submittedAt: { $gte: monthStart }
       })
+    ])
+
+    // Calculate response rate (simplified - you can make this more sophisticated)
+    const forms = await db.collection("forms").find({ userId: decoded.userId }).toArray()
+    let totalViews = 0
+    let totalResponses = 0
+
+    for (const form of forms) {
+      const submissions = await db.collection("submissions").countDocuments({ formId: form._id.toString() })
+      const views = form.views || submissions * 2 // Estimate views if not tracked
+      totalViews += views
+      totalResponses += submissions
     }
 
-    // Response rate calculation
-    const responseRate = totalForms > 0 ? (totalSubmissions / (totalForms * 100)) * 100 : 0
+    const responseRate = totalViews > 0 ? Math.round((totalResponses / totalViews) * 100) : 0
 
     return NextResponse.json({
       totalForms,
       totalSubmissions,
-      activeForms,
-      monthlySubmissions,
-      responseRate: Math.round(responseRate * 100) / 100,
-      botSubmissions,
-      humanSubmissions,
-      botRate: Math.round(botRate * 100) / 100,
-      locationStats,
-      dailyStats,
-      submissions: submissions.map(sub => ({
-        ...sub,
-        id: sub._id.toString()
-      }))
+      thisMonth: thisMonthSubmissions,
+      responseRate
     })
   } catch (error) {
-    console.error("Error fetching analytics:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
-}
-
-async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
-  const token = request.cookies.get("token")?.value
-  if (!token) {
-    return null
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
-    return decoded.userId
-  } catch (error) {
-    console.error("JWT verification error:", error)
-    return null
+    console.error("Analytics API error:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch analytics" },
+      { status: 500 }
+    )
   }
 }

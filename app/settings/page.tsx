@@ -21,14 +21,8 @@ interface Plan {
   id: string
   name: string
   price: number
-  billing: string
-  features: {
-    maxForms: number
-    maxSubmissions: number
-    responseRate: boolean
-    analytics: boolean
-    customization: boolean
-  }
+  interval: string
+  features: string[]
 }
 
 export default function Settings() {
@@ -67,12 +61,12 @@ export default function Settings() {
     }
   }
 
-  const handleUpgrade = async (planId: string) => {
+  const handleUpgrade = async (planName: string) => {
     try {
       const response = await fetch("/api/plans", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planId: planId }),
+        body: JSON.stringify({ plan: planName }),
       })
 
       if (response.ok) {
@@ -180,37 +174,35 @@ export default function Settings() {
                 <div
                   key={plan.id}
                   className={`border rounded-lg p-4 ${
-                    getCurrentPlan() === plan.id ? "border-blue-500 bg-blue-50" : "border-gray-200"
+                    getCurrentPlan() === plan.name ? "border-blue-500 bg-blue-50" : "border-gray-200"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
                         {getPlanIcon(plan.name)}
-                        <h3 className="font-semibold capitalize">{plan.name}</h3>
-                        {getCurrentPlan() === plan.id && (
+                        <h3 className="font-semibold capitalize">{plan.name} Plan</h3>
+                        {getCurrentPlan() === plan.name && (
                           <Badge variant="default">Current</Badge>
                         )}
                       </div>
                       <p className="text-2xl font-bold mt-1">
                         ${plan.price}
                         <span className="text-sm font-normal text-gray-600">
-                          /{plan.billing}
+                          /{plan.interval}
                         </span>
                       </p>
                       <ul className="text-sm text-gray-600 mt-2 space-y-1">
-                        <li>• {plan.features.maxForms === -1 ? "Unlimited" : plan.features.maxForms} Forms</li>
-                        <li>• {plan.features.maxSubmissions.toLocaleString()} Submissions/month</li>
-                        {plan.features.responseRate && <li>• Response Rate Analytics</li>}
-                        {plan.features.analytics && <li>• Advanced Analytics</li>}
-                        {plan.features.customization && <li>• Custom Styling</li>}
+                        {plan.features.map((feature, index) => (
+                          <li key={index}>• {feature}</li>
+                        ))}
                       </ul>
                     </div>
                     <div>
-                      {getCurrentPlan() !== plan.id && (
+                      {getCurrentPlan() !== plan.name && (
                         <Button
-                          onClick={() => handleUpgrade(plan.id)}
-                          variant={plan.id.includes("yearly") ? "default" : "outline"}
+                          onClick={() => handleUpgrade(plan.name)}
+                          variant={plan.name === "yearly" ? "default" : "outline"}
                         >
                           {getCurrentPlan() === "free" ? "Upgrade" : "Switch"}
                         </Button>

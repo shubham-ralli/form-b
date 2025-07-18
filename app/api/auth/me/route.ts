@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
 import jwt from "jsonwebtoken"
+import { ObjectId } from "mongodb"
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,8 +18,9 @@ export async function GET(request: NextRequest) {
     const client = await clientPromise
     const db = client.db("formcraft")
 
+    // Convert string ID to ObjectId for MongoDB query
     const user = await db.collection("users").findOne(
-      { _id: decoded.userId },
+      { _id: new ObjectId(decoded.userId) },
       { projection: { password: 0 } }
     )
 
@@ -66,9 +68,10 @@ export async function GET(request: NextRequest) {
       plan: user.plan || "free"
     })
   } catch (error) {
+    console.error("Auth API error:", error)
     return NextResponse.json(
-      { error: "Invalid token" },
-      { status: 401 }
+      { error: "Server error" },
+      { status: 500 }
     )
   }
 }

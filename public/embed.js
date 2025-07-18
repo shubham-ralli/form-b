@@ -184,7 +184,7 @@
             element.options.forEach((option, index) => {
               radioHTML += `
                 <label style="display: flex; align-items: center; font-weight: normal; cursor: pointer;">
-                  <input type="radio" name="${element.id}" value="${option}" ${element.required && index === 0 ? "required" : ""} style="margin-right: 8px;">
+                  <input type="radio" name="${element.id}" value="${option}" ${element.required ? "required" : ""} style="margin-right: 8px;">
                   <span>${option}</span>
                 </label>
               `;

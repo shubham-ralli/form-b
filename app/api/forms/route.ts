@@ -46,10 +46,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const formData = await request.json()
-
     const client = await clientPromise
     const db = client.db("formcraft")
+
+    // Get user to check plan
+    const users = db.collection("users")
+    const user = await users.findOne({ _id: new ObjectId(userId) })
+    if (!user) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      )
+    }
+
+    // Check form limits for free plan
+    if (user.plan === "free" || !user.plan) {
+      const forms = db.collection("forms")
+      const formsCount = await forms.countDocuments({ userId: new ObjectId(userId) })
+      if (formsCount >= 3) {
+        return NextResponse.json(
+          { error: "Free plan allows maximum 3 forms. Please upgrade to create more forms." },
+          { status: 403 }
+        )
+      }
+    }
+
+    const formData = await request.json()
+
     const forms = db.collection("forms")
 
     const newForm = {
@@ -70,6 +93,9 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error("Error creating form:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    )
   }
 }

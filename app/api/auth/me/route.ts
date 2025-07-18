@@ -1,36 +1,73 @@
-import { type NextRequest, NextResponse } from "next/server"
-import clientPromise from "@/lib/mongodb"
-import { ObjectId } from "mongodb"
-import { getUserIdFromRequest } from "@/lib/auth"
-
-// Force this route to use Node.js runtime
-export const runtime = "nodejs"
+import { NextRequest, NextResponse } from "next/server"
+import { connectToDatabase } from "@/lib/mongodb"
+import jwt from "jsonwebtoken"
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = await getUserIdFromRequest(request)
+    const token = request.cookies.get("token")?.value
 
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!token) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      )
     }
 
-    const client = await clientPromise
-    const db = client.db("formcraft")
-    const users = db.collection("users")
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
+    const { db } = await connectToDatabase()
 
-    const user = await users.findOne({ _id: new ObjectId(userId) })
+    const user = await db.collection("users").findOne(
+      { _id: decoded.userId },
+      { projection: { password: 0 } }
+    )
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      )
     }
 
+    // Get form count for this user
+    const formsCount = await db.collection("forms").countDocuments({ userId: decoded.userId })
+
+    // Get submissions count for this month
+    const startOfMonth = new Date()
+    startOfMonth.setDate(1)
+    startOfMonth.setHours(0, 0, 0, 0)
+
+    const submissions = await db.collection("submissions").aggregate([
+      {
+        $lookup: {
+          from: "forms",
+          localField: "formId",
+          foreignField: "_id",
+          as: "form"
+        }
+      },
+      {
+        $match: {
+          "form.userId": decoded.userId,
+          submittedAt: { $gte: startOfMonth }
+        }
+      },
+      {
+        $count: "total"
+      }
+    ]).toArray()
+
+    const submissionsThisMonth = submissions.length > 0 ? submissions[0].total : 0
+
     return NextResponse.json({
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
+      ...user,
+      formsUsed: formsCount,
+      submissionsThisMonth,
+      plan: user.plan || "free"
     })
   } catch (error) {
-    console.error("Get user error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Invalid token" },
+      { status: 401 }
+    )
   }
 }

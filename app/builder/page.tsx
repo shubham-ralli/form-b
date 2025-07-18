@@ -117,7 +117,7 @@ function ElementSettingsDialog({
     setContent(element.content || "")
   }, [element])
 
-  const hasOptions = ["select", "radio", "checkbox"].includes(element.type)
+  const hasOptions = ["select", "radio"].includes(element.type)
   const hasMinMax = element.type === "number"
   const hasContent = ["heading", "paragraph"].includes(element.type)
 
@@ -192,6 +192,44 @@ function ElementSettingsDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {hasContent && (
+            <div>
+              <Label htmlFor="content">Content</Label>
+              <Textarea
+                id="content"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Enter content text"
+                rows={3}
+              />
+            </div>
+          )}
+
+          {hasMinMax && (
+            <>
+              <div>
+                <Label htmlFor="min">Minimum Value</Label>
+                <Input
+                  id="min"
+                  type="number"
+                  value={min}
+                  onChange={(e) => setMin(e.target.value)}
+                  placeholder="Enter minimum value"
+                />
+              </div>
+              <div>
+                <Label htmlFor="max">Maximum Value</Label>
+                <Input
+                  id="max"
+                  type="number"
+                  value={max}
+                  onChange={(e) => setMax(e.target.value)}
+                  placeholder="Enter maximum value"
+                />
+              </div>
+            </>
+          )}
 
           {hasOptions && (
             <div>
@@ -356,26 +394,47 @@ function FormElementRenderer({
     <>
       <div
         className={cn(
-          "group relative p-4 border rounded-lg transition-colors",
-          isPreview ? "border-gray-200" : "hover:border-blue-300",
-          element.width, // Apply width class here
+          "group relative p-4 border rounded-lg transition-all duration-200",
+          isPreview 
+            ? "border-gray-200 bg-white" 
+            : "hover:border-blue-300 hover:shadow-md bg-gray-50 hover:bg-white",
+          "w-full" // Remove width class application here since we handle it in DropZone
         )}
       >
         {!isPreview && (
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="flex gap-1">
-              <Button size="sm" variant="ghost" onClick={() => setSettingsOpen(true)}>
-                <Settings className="h-3 w-3" />
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => onDelete(element.id)}>
-                <Trash2 className="h-3 w-3" />
-              </Button>
+          <>
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <div className="flex gap-1 bg-white rounded-md shadow-sm border p-1">
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setSettingsOpen(true)}
+                  className="h-6 w-6 p-0 hover:bg-blue-50"
+                >
+                  <Settings className="h-3 w-3 text-blue-600" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => onDelete(element.id)}
+                  className="h-6 w-6 p-0 hover:bg-red-50"
+                >
+                  <Trash2 className="h-3 w-3 text-red-600" />
+                </Button>
+              </div>
             </div>
-          </div>
+            
+            <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Badge variant="secondary" className="text-xs">
+                {element.type}
+                {element.width === "w-1/2" && " • Half Width"}
+              </Badge>
+            </div>
+          </>
         )}
 
-        <div className="space-y-2">
-          {element.type !== "checkbox" && (
+        <div className="space-y-2 mt-6">
+          {element.type !== "checkbox" && element.type !== "heading" && element.type !== "paragraph" && (
             <Label className="text-sm font-medium">
               {element.label}
               {element.required && <span className="text-red-500 ml-1">*</span>}
@@ -418,20 +477,52 @@ function DropZone({
     <div
       ref={drop}
       className={cn(
-        "min-h-96 p-6 border-2 border-dashed rounded-lg transition-colors",
-        isOver ? "border-blue-400 bg-blue-50" : "border-gray-300",
-        "flex flex-wrap gap-4", // Added flex-wrap and gap
+        "min-h-96 p-6 border-2 border-dashed rounded-lg transition-all duration-200",
+        isOver ? "border-blue-400 bg-blue-50 shadow-lg" : "border-gray-300",
+        "relative"
       )}
     >
+      {isOver && (
+        <div className="absolute inset-0 bg-blue-100 bg-opacity-50 flex items-center justify-center rounded-lg pointer-events-none">
+          <div className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">
+            Drop element here
+          </div>
+        </div>
+      )}
+      
       {elements.length === 0 ? (
-        <div className="text-center text-gray-500 py-12 w-full">
-          <p className="text-lg mb-2">Drop form elements here</p>
-          <p className="text-sm">Drag elements from the sidebar to build your form</p>
+        <div className="text-center text-gray-500 py-12">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+            <Plus className="h-8 w-8 text-gray-400" />
+          </div>
+          <p className="text-lg mb-2 font-medium">Start building your form</p>
+          <p className="text-sm">Drag elements from the sidebar to create your form</p>
         </div>
       ) : (
-        elements.map((element) => (
-          <FormElementRenderer key={element.id} element={element} onUpdate={onUpdate} onDelete={onDelete} />
-        ))
+        <div className="grid grid-cols-1 gap-4">
+          {elements.map((element, index) => (
+            <div key={element.id} className={cn(
+              "relative",
+              element.width === "w-1/2" && index % 2 === 0 && elements[index + 1]?.width === "w-1/2" 
+                ? "grid grid-cols-2 gap-4 col-span-full" 
+                : ""
+            )}>
+              <FormElementRenderer 
+                element={element} 
+                onUpdate={onUpdate} 
+                onDelete={onDelete} 
+              />
+              {element.width === "w-1/2" && elements[index + 1]?.width === "w-1/2" && (
+                <FormElementRenderer 
+                  key={elements[index + 1].id}
+                  element={elements[index + 1]} 
+                  onUpdate={onUpdate} 
+                  onDelete={onDelete} 
+                />
+              )}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

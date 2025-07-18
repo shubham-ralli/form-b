@@ -42,8 +42,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const submissionData = await request.json()
-    const { formId } = submissionData
+    const formData = await request.json()
+    const { formId } = formData
 
     if (!formId) {
       return NextResponse.json({ error: "Form ID is required" }, { status: 400 })
@@ -75,30 +75,27 @@ export async function POST(request: NextRequest) {
       currentMonth.setHours(0, 0, 0, 0)
 
       const monthlySubmissions = await submissions.countDocuments({
-        formId: formId,
-        submittedAt: { $gte: currentMonth }
+        userId: form.userId,
+        createdAt: { $gte: currentMonth }
       })
 
       if (monthlySubmissions >= 10) {
         return NextResponse.json(
-          { error: "Submission limit reached. Free plan allows maximum 10 submissions per month. Please upgrade to continue receiving submissions." },
+          { error: "Free plan allows maximum 10 submissions per month. Please upgrade to continue receiving submissions." },
           { status: 403 }
         )
       }
     }
 
+    const submissionData = await request.json()
+
     const submissionsCollection = db.collection("submissions")
 
     const newSubmission = {
-      formId: submissionData.formId,
-      data: submissionData.data,
+      ...submissionData,
       submittedAt: new Date(),
       ipAddress: request.headers.get("x-forwarded-for") || request.ip || "127.0.0.1",
-      userAgent: submissionData.userAgent || request.headers.get("user-agent") || "Unknown",
-      webpageUrl: submissionData.webpageUrl || "Unknown",
-      referrer: submissionData.referrer || "Direct",
-      isBotDetected: submissionData.isBotDetected || false,
-      fillTime: submissionData.fillTime || 0,
+      userAgent: request.headers.get("user-agent") || "Unknown",
     }
 
     const result = await submissionsCollection.insertOne(newSubmission)

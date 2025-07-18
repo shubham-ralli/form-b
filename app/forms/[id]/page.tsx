@@ -79,7 +79,7 @@ export default function FormDetailsPage() {
 
     // Get all unique field names from form elements and submission metadata
     const formFieldNames = form.elements.map((el) => el.id)
-    const submissionMetaFields = ["webpageUrl", "ipAddress", "userAgent"] // Add other meta fields if needed
+    const submissionMetaFields = ["ipAddress", "userAgent"] // Add other meta fields if needed
 
     const allFieldNames = new Set<string>()
     formFieldNames.forEach((field) => allFieldNames.add(field))
@@ -97,7 +97,6 @@ export default function FormDetailsPage() {
             const value = submission.data[field] || ""
             return `"${String(value).replace(/"/g, '""')}"`
           }),
-          `"${String((submission as any).webpageUrl || "Unknown").replace(/"/g, '""')}"`,
           `"${String(submission.ipAddress || "").replace(/"/g, '""')}"`,
           `"${String(submission.userAgent || "").replace(/"/g, '""')}"`,
         ]
@@ -253,7 +252,6 @@ export default function FormDetailsPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date</TableHead>
-                        <TableHead>Webpage URL</TableHead>
                         <TableHead>IP Address</TableHead>
                         <TableHead>User Agent</TableHead>
                         {form.elements.map((element) => (
@@ -265,7 +263,6 @@ export default function FormDetailsPage() {
                       {submissions.map((submission) => (
                         <TableRow key={submission.id}>
                           <TableCell>{new Date(submission.submittedAt).toLocaleString()}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{(submission as any).webpageUrl || "Unknown"}</TableCell>
                           <TableCell>{submission.ipAddress}</TableCell>
                           <TableCell className="max-w-[200px] truncate">{submission.userAgent}</TableCell>
                           {form.elements.map((element) => (

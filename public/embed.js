@@ -1,25 +1,35 @@
-;(() => {
+(() => {
   window.FormCraft = {
     render: function (formId, containerId) {
-      const container = document.getElementById(containerId)
+      const container = document.getElementById(containerId);
       if (!container) {
-        console.error("FormCraft: Container element not found")
-        return
+        console.error("FormCraft: Container element not found");
+        return;
       }
 
       // Show loading state
-      container.innerHTML = '<div style="text-align: center; padding: 20px;">Loading form...</div>'
+      container.innerHTML =
+        '<div style="text-align: center; padding: 20px;">Loading form...</div>';
 
       // Determine the API URL
-      let apiUrl = container.dataset.apiUrl
+      let apiUrl = container.dataset.apiUrl;
 
       if (!apiUrl) {
         // Try to detect if we're in development or production
-        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-          apiUrl = "http://localhost:3000"
-         } else if (window.location.protocol === "file:" || window.location.protocol === "https:" || window.location.protocol === "http:") {
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1"
+        ) {
+          apiUrl =
+            "https://63454937-214e-4451-b30c-3180aaf162f8-00-1gp0zrilxanc1.pike.replit.dev";
+        } else if (
+          window.location.protocol === "file:" ||
+          window.location.protocol === "https:" ||
+          window.location.protocol === "http:"
+        ) {
           // Handle file:// protocol for local testing
-          apiUrl = "http://localhost:3000"
+          apiUrl =
+            "https://63454937-214e-4451-b30c-3180aaf162f8-00-1gp0zrilxanc1.pike.replit.dev";
           container.innerHTML = `
             <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 20px 0;">
               <h4 style="margin: 0 0 8px 0; color: #92400e;">⚠️ Local File Detected</h4>
@@ -29,10 +39,10 @@
                 <br>2. Or serve this HTML file through a web server instead of opening it directly
               </p>
             </div>
-          `
+          `;
           // Still try to load the form
         } else {
-          apiUrl = window.location.origin
+          apiUrl = window.location.origin;
         }
       }
 
@@ -40,14 +50,14 @@
       fetch(`${apiUrl}/api/forms/${formId}`)
         .then((response) => {
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-          return response.json()
+          return response.json();
         })
         .then((formConfig) => {
           if (formConfig.error) {
-            container.innerHTML = `<div style="color: red; padding: 20px;">Form not found: ${formConfig.error}</div>`
-            return
+            container.innerHTML = `<div style="color: red; padding: 20px;">Form not found: ${formConfig.error}</div>`;
+            return;
           }
 
           if (!formConfig.isActive) {
@@ -57,24 +67,26 @@
                 <h3 style="margin: 0 0 8px 0; color: #dc2626;">Form Inactive</h3>
                 <p style="margin: 0; color: #dc2626;">This form is currently not active and cannot receive submissions.</p>
               </div>
-            `
-            return
+            `;
+            return;
           }
 
           // Generate form HTML
-          const formHTML = this.generateFormHTML(formConfig, apiUrl)
-          container.innerHTML = formHTML
+          const formHTML = this.generateFormHTML(formConfig, apiUrl);
+          container.innerHTML = formHTML;
 
           // Add event listener for form submission
-          const form = container.querySelector("form")
+          const form = container.querySelector("form");
           if (form) {
-            form.addEventListener("submit", (e) => this.handleSubmit(e, formConfig, apiUrl))
+            form.addEventListener("submit", (e) =>
+              this.handleSubmit(e, formConfig, apiUrl),
+            );
           }
         })
         .catch((error) => {
-          console.error("FormCraft: Error loading form", error)
+          console.error("FormCraft: Error loading form", error);
 
-          let errorMessage = "Error loading form"
+          let errorMessage = "Error loading form";
           if (error.message.includes("Failed to fetch")) {
             errorMessage = `
               <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 16px; border-radius: 8px;">
@@ -87,11 +99,11 @@
                   <br>• CORS is properly configured
                 </p>
               </div>
-            `
+            `;
           }
 
-          container.innerHTML = `<div style="padding: 20px;">${errorMessage}</div>`
-        })
+          container.innerHTML = `<div style="padding: 20px;">${errorMessage}</div>`;
+        });
     },
 
     generateFormHTML: function (formConfig, apiUrl) {
@@ -99,11 +111,11 @@
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
           <h2 style="margin-bottom: 20px; color: #333; text-align: center;">${formConfig.title}</h2>
           <form id="formcraft-form-${formConfig.id}" style="display: flex; flex-wrap: wrap; gap: 16px;">
-      `
+      `;
 
       formConfig.elements.forEach((element) => {
-        html += this.generateElementHTML(element)
-      })
+        html += this.generateElementHTML(element);
+      });
 
       html += `
             <button type="submit" style="
@@ -122,16 +134,16 @@
             </button>
           </form>
         </div>
-      `
+      `;
 
-      return html
+      return html;
     },
 
     generateElementHTML: (element) => {
-      const labelHTML = `<label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 14px;">${element.label}${element.required ? ' <span style="color: #ef4444;">*</span>' : ""}</label>`
+      const labelHTML = `<label style="display: block; margin-bottom: 8px; font-weight: 500; color: #374151; font-size: 14px;">${element.label}${element.required ? ' <span style="color: #ef4444;">*</span>' : ""}</label>`;
       const inputStyle =
-        "width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; box-sizing: border-box; font-family: inherit;"
-      const elementWrapperStyle = `margin-bottom: 0; ${element.width === "w-1/2" ? "flex: 0 0 calc(50% - 8px);" : "width: 100%;"}` // Apply width here
+        "width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 16px; box-sizing: border-box; font-family: inherit;";
+      const elementWrapperStyle = `margin-bottom: 0; ${element.width === "w-1/2" ? "flex: 0 0 calc(50% - 8px);" : "width: 100%;"}`; // Apply width here
 
       switch (element.type) {
         case "text":
@@ -141,7 +153,7 @@
               ${labelHTML}
               <input type="${element.type}" name="${element.id}" placeholder="${element.placeholder || ""}" ${element.required ? "required" : ""} style="${inputStyle}">
             </div>
-          `
+          `;
 
         case "textarea":
           return `
@@ -149,7 +161,7 @@
               ${labelHTML}
               <textarea name="${element.id}" placeholder="${element.placeholder || ""}" ${element.required ? "required" : ""} style="${inputStyle} min-height: 100px; resize: vertical;"></textarea>
             </div>
-          `
+          `;
 
         case "select":
           let selectHTML = `
@@ -157,17 +169,17 @@
               ${labelHTML}
               <select name="${element.id}" ${element.required ? "required" : ""} style="${inputStyle}">
                 <option value="">Select an option</option>
-          `
+          `;
           if (element.options) {
             element.options.forEach((option) => {
-              selectHTML += `<option value="${option}">${option}</option>`
-            })
+              selectHTML += `<option value="${option}">${option}</option>`;
+            });
           }
-          selectHTML += `</select></div>`
-          return selectHTML
+          selectHTML += `</select></div>`;
+          return selectHTML;
 
         case "radio":
-          let radioHTML = `<div style="${elementWrapperStyle}">${labelHTML}<div style="display: flex; flex-direction: column; gap: 8px;">`
+          let radioHTML = `<div style="${elementWrapperStyle}">${labelHTML}<div style="display: flex; flex-direction: column; gap: 8px;">`;
           if (element.options) {
             element.options.forEach((option, index) => {
               radioHTML += `
@@ -175,11 +187,11 @@
                   <input type="radio" name="${element.id}" value="${option}" ${element.required && index === 0 ? "required" : ""} style="margin-right: 8px;">
                   <span>${option}</span>
                 </label>
-              `
-            })
+              `;
+            });
           }
-          radioHTML += `</div></div>`
-          return radioHTML
+          radioHTML += `</div></div>`;
+          return radioHTML;
 
         case "checkbox":
           return `
@@ -189,38 +201,38 @@
                 <span>${element.label}</span>
               </label>
             </div>
-          `
+          `;
 
         default:
-          return ""
+          return "";
       }
     },
 
     handleSubmit: (event, formConfig, apiUrl) => {
-      event.preventDefault()
+      event.preventDefault();
 
-      const form = event.target
-      const submitButton = form.querySelector('button[type="submit"]')
-      const originalText = submitButton.textContent
+      const form = event.target;
+      const submitButton = form.querySelector('button[type="submit"]');
+      const originalText = submitButton.textContent;
 
       // Show loading state
-      submitButton.textContent = "Submitting..."
-      submitButton.disabled = true
+      submitButton.textContent = "Submitting...";
+      submitButton.disabled = true;
 
-      const formData = new FormData(form)
-      const data = {}
+      const formData = new FormData(form);
+      const data = {};
 
       // Convert FormData to regular object
       for (const [key, value] of formData.entries()) {
         if (data[key]) {
           // Handle multiple values (like checkboxes)
           if (Array.isArray(data[key])) {
-            data[key].push(value)
+            data[key].push(value);
           } else {
-            data[key] = [data[key], value]
+            data[key] = [data[key], value];
           }
         } else {
-          data[key] = value
+          data[key] = value;
         }
       }
 
@@ -237,14 +249,17 @@
       })
         .then((response) => {
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
+            throw new Error(`HTTP error! status: ${response.status}`);
           }
-          return response.json()
+          return response.json();
         })
         .then((result) => {
           // Handle post-submission behavior
-          if (formConfig.submissionType === "redirect" && formConfig.redirectUrl) {
-            window.location.href = formConfig.redirectUrl
+          if (
+            formConfig.submissionType === "redirect" &&
+            formConfig.redirectUrl
+          ) {
+            window.location.href = formConfig.redirectUrl;
           } else {
             // Default to message or use custom HTML
             const successMessage =
@@ -255,39 +270,40 @@
                 <h3 style="margin: 0 0 8px 0; color: #059669;">Thank you!</h3>
                 <p style="margin: 0; color: #6b7280;">Your form has been submitted successfully.</p>
               </div>
-            `
-            form.parentElement.innerHTML = successMessage
+            `;
+            form.parentElement.innerHTML = successMessage;
           }
         })
         .catch((error) => {
-          console.error("FormCraft: Submission error", error)
+          console.error("FormCraft: Submission error", error);
 
           // Reset button state
-          submitButton.textContent = originalText
-          submitButton.disabled = false
+          submitButton.textContent = originalText;
+          submitButton.disabled = false;
 
           // Show error message
-          let errorDiv = form.querySelector(".error-message")
+          let errorDiv = form.querySelector(".error-message");
           if (!errorDiv) {
-            errorDiv = document.createElement("div")
-            errorDiv.className = "error-message"
+            errorDiv = document.createElement("div");
+            errorDiv.className = "error-message";
             errorDiv.style.cssText =
-              "color: #ef4444; background: #fef2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; border: 1px solid #fecaca;"
-            form.insertBefore(errorDiv, form.firstChild)
+              "color: #ef4444; background: #fef2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; border: 1px solid #fecaca;";
+            form.insertBefore(errorDiv, form.firstChild);
           }
-          errorDiv.textContent = "There was an error submitting the form. Please try again."
-        })
+          errorDiv.textContent =
+            "There was an error submitting the form. Please try again.";
+        });
     },
-  }
+  };
 
   // Auto-initialize if data attributes are present
   document.addEventListener("DOMContentLoaded", () => {
-    const containers = document.querySelectorAll("[data-formcraft-id]")
+    const containers = document.querySelectorAll("[data-formcraft-id]");
     containers.forEach((container) => {
-      const formId = container.getAttribute("data-formcraft-id")
+      const formId = container.getAttribute("data-formcraft-id");
       if (formId && container.id) {
-        window.FormCraft.render(formId, container.id)
+        window.FormCraft.render(formId, container.id);
       }
-    })
-  })
-})()
+    });
+  });
+})();

@@ -120,6 +120,11 @@
         html += this.generateElementHTML(element);
       });
 
+      // Add honeypot field for bot detection
+      html += `
+        <input type="text" name="bot_check" style="position: absolute; left: -9999px; visibility: hidden;" tabindex="-1" autocomplete="off">
+      `;
+
       html += `
             <button type="submit" style="
               background: #3b82f6;
@@ -239,21 +244,9 @@
         }
       }
 
-      // Get user location (basic)
-      let userLocation = 'Unknown';
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            userLocation = `${position.coords.latitude.toFixed(2)}, ${position.coords.longitude.toFixed(2)}`;
-          },
-          () => {
-            // Use timezone as fallback
-            userLocation = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          }
-        );
-      } else {
-        userLocation = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      }
+      // Get webpage URL where form is embedded
+      const webpageUrl = window.location.href;
+      const referrer = document.referrer || 'Direct';
 
       // Basic bot detection
       const botCheck = form.querySelector('input[name="bot_check"]');
@@ -261,15 +254,35 @@
 
       // Honeypot Check
       if (botCheck && botCheck.value !== "") {
-        alert('Possible bot detected!');
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+        
+        let errorDiv = form.querySelector(".error-message");
+        if (!errorDiv) {
+          errorDiv = document.createElement("div");
+          errorDiv.className = "error-message";
+          errorDiv.style.cssText = "color: #ef4444; background: #fef2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; border: 1px solid #fecaca;";
+          form.insertBefore(errorDiv, form.firstChild);
+        }
+        errorDiv.textContent = "Security check failed. Please try again.";
         return false;
       }
 
-      // Time Check
+      // Time Check - form must be filled for at least 2 seconds
       let formFillTime = Date.now() - window.formStartTime;
-      if (formFillTime < 1000) {
-          alert('Possible bot: Form filled too quickly!');
-          return false;
+      if (formFillTime < 2000) {
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+        
+        let errorDiv = form.querySelector(".error-message");
+        if (!errorDiv) {
+          errorDiv = document.createElement("div");
+          errorDiv.className = "error-message";
+          errorDiv.style.cssText = "color: #ef4444; background: #fef2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; border: 1px solid #fecaca;";
+          form.insertBefore(errorDiv, form.firstChild);
+        }
+        errorDiv.textContent = "Please take your time to fill the form properly.";
+        return false;
       }
 
       // Submit to API
@@ -282,7 +295,8 @@
           formId: formConfig.id,
           data: data,
           isBotDetected: isBotDetected,
-          location: userLocation,
+          webpageUrl: webpageUrl,
+          referrer: referrer,
           userAgent: navigator.userAgent,
           fillTime: formFillTime
         }),
@@ -330,8 +344,13 @@
               "color: #ef4444; background: #fef2f2; padding: 12px; border-radius: 6px; margin-bottom: 16px; border: 1px solid #fecaca;";
             form.insertBefore(errorDiv, form.firstChild);
           }
-          errorDiv.textContent =
-            "There was an error submitting the form. Please try again.";
+          
+          // Check if it's a specific error
+          if (error.message.includes("403")) {
+            errorDiv.textContent = "Submission limit reached. Please upgrade your plan to continue receiving submissions.";
+          } else {
+            errorDiv.textContent = "There was an error submitting the form. Please try again.";
+          }
         });
     },
   };

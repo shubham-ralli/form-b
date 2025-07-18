@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
 import jwt from "jsonwebtoken"
@@ -71,22 +70,40 @@ export async function POST(request: NextRequest) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
     const { planId } = await request.json()
 
+    if (!planId) {
+      return NextResponse.json({ error: "Plan ID is required" }, { status: 400 })
+    }
+
     const client = await clientPromise
     const db = client.db("formcraft")
 
+    // Validate plan exists
+    const validPlans = ["free", "pro-monthly", "pro-yearly"]
+    if (!validPlans.includes(planId)) {
+      return NextResponse.json({ error: "Invalid plan" }, { status: 400 })
+    }
+
     // Update user's plan
-    await db.collection("users").updateOne(
+    const result = await db.collection("users").updateOne(
       { _id: new ObjectId(decoded.userId) },
       { 
         $set: { 
-          plan: planId,
+          plan: planId, 
           planUpdatedAt: new Date(),
-          submissionCount: 0 // reset submission count on plan change
+          submissionCount: 0
         } 
       }
     )
 
-    return NextResponse.json({ success: true })
+    if (result.modifiedCount === 0) {
+      return NextResponse.json({ error: "Failed to update plan" }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Plan updated to ${planId}`,
+      plan: planId 
+    })
   } catch (error) {
     console.error("Plan update error:", error)
     return NextResponse.json(

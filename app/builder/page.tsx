@@ -300,7 +300,7 @@ function FormElementRenderer({
     accept: 'form-element',
     hover: (item: { id: string; index: number }, monitor) => {
       if (!onReorder || index === undefined) return
-      
+
       const dragIndex = item.index
       const hoverIndex = index
 
@@ -565,7 +565,7 @@ function DropZone({
             if (element.width === "w-1/2" && index > 0 && elements[index - 1]?.width === "w-1/2") {
               return null;
             }
-            
+
             // Check if this half-width element should be paired with the next
             if (element.width === "w-1/2" && elements[index + 1]?.width === "w-1/2") {
               return (
@@ -587,7 +587,7 @@ function DropZone({
                 </div>
               );
             }
-            
+
             // Render single element (full width or unpaired half width)
             return (
               <div key={element.id} className={element.width === "w-1/2" ? "w-1/2" : "w-full"}>
@@ -625,7 +625,7 @@ function FormPreview({ formConfig }: { formConfig: FormConfig }) {
           if (element.width === "w-1/2" && index > 0 && formConfig.elements[index - 1]?.width === "w-1/2") {
             return null;
           }
-          
+
           // Check if this half-width element should be paired with the next
           if (element.width === "w-1/2" && formConfig.elements[index + 1]?.width === "w-1/2") {
             return (
@@ -645,7 +645,7 @@ function FormPreview({ formConfig }: { formConfig: FormConfig }) {
               </div>
             );
           }
-          
+
           // Render single element
           return (
             <div key={element.id} className={element.width === "w-1/2" ? "w-1/2" : "w-full"}>
@@ -675,23 +675,30 @@ export default function FormBuilder() {
     submissionType: "message",
     successMessageHtml: "<h3>Thank you for your submission!</h3><p>We have received your response.</p>",
     isActive: true,
+    buttonText?: string,
+    headerText?: string
   })
   const [showPreview, setShowPreview] = useState(false)
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [selectedElement, setSelectedElement] = useState<FormElement | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isPageLoading, setIsPageLoading] = useState(true)
 
   // Load existing form if editing
   useEffect(() => {
-    const formId = searchParams.get("id")
-    if (formId) {
-      setIsEditing(true)
-      loadForm(formId)
+    const loadForm = async () => {
+      if (searchParams.get("id")) {
+        await fetchForm(searchParams.get("id")!)
+      }
+      setIsPageLoading(false)
     }
+    loadForm()
   }, [searchParams])
 
-  const loadForm = async (formId: string) => {
+  const fetchForm = async (formId: string) => {
     try {
       const response = await fetch(`/api/forms/${formId}`)
       if (response.ok) {

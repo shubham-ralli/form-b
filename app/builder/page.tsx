@@ -25,25 +25,38 @@ interface FormElement {
   required?: boolean
   options?: string[]
   width?: "w-full" | "w-1/2"
+  min?: number
+  max?: number
+  content?: string // For heading and paragraph elements
 }
 
 interface FormConfig {
   id?: string
   title: string
+  subtitle?: string
   elements: FormElement[]
   submissionType: "message" | "redirect"
   redirectUrl?: string
   successMessageHtml?: string
   isActive: boolean
+  buttonText?: string
+  headerText?: string
 }
 
 const ELEMENT_TYPES = [
   { type: "text", label: "Text Input", icon: "📝" },
   { type: "email", label: "Email Input", icon: "📧" },
+  { type: "password", label: "Password Input", icon: "🔒" },
+  { type: "number", label: "Number Input", icon: "🔢" },
+  { type: "date", label: "Date Input", icon: "📅" },
+  { type: "tel", label: "Phone Input", icon: "📞" },
+  { type: "url", label: "URL Input", icon: "🔗" },
   { type: "textarea", label: "Text Area", icon: "📄" },
   { type: "select", label: "Select Dropdown", icon: "📋" },
   { type: "radio", label: "Radio Buttons", icon: "🔘" },
   { type: "checkbox", label: "Checkbox", icon: "☑️" },
+  { type: "heading", label: "Heading", icon: "📰" },
+  { type: "paragraph", label: "Paragraph", icon: "📝" },
 ]
 
 function DraggableElement({ type, label, icon }: { type: string; label: string; icon: string }) {
@@ -87,6 +100,9 @@ function ElementSettingsDialog({
   const [options, setOptions] = useState(element.options || [])
   const [newOption, setNewOption] = useState("")
   const [width, setWidth] = useState(element.width || "w-full")
+  const [min, setMin] = useState(element.min || "")
+  const [max, setMax] = useState(element.max || "")
+  const [content, setContent] = useState(element.content || "")
 
   useEffect(() => {
     // Reset state when element changes (dialog opens for a new element)
@@ -96,9 +112,14 @@ function ElementSettingsDialog({
     setOptions(element.options || [])
     setNewOption("")
     setWidth(element.width || "w-full")
+    setMin(element.min || "")
+    setMax(element.max || "")
+    setContent(element.content || "")
   }, [element])
 
   const hasOptions = ["select", "radio", "checkbox"].includes(element.type)
+  const hasMinMax = element.type === "number"
+  const hasContent = ["heading", "paragraph"].includes(element.type)
 
   const handleSave = () => {
     onUpdate({
@@ -107,6 +128,9 @@ function ElementSettingsDialog({
       required,
       options: hasOptions ? options : undefined,
       width,
+      min: hasMinMax && min ? Number(min) : undefined,
+      max: hasMinMax && max ? Number(max) : undefined,
+      content: hasContent ? content : undefined,
     })
     onOpenChange(false)
   }
@@ -229,10 +253,34 @@ function FormElementRenderer({
     switch (element.type) {
       case "text":
       case "email":
+      case "password":
+      case "tel":
+      case "url":
         return (
           <Input
             type={element.type}
             placeholder={element.placeholder || `Enter ${element.label.toLowerCase()}`}
+            disabled={!isPreview}
+            required={element.required}
+            name={element.id}
+          />
+        )
+      case "number":
+        return (
+          <Input
+            type="number"
+            placeholder={element.placeholder || `Enter ${element.label.toLowerCase()}`}
+            disabled={!isPreview}
+            required={element.required}
+            name={element.id}
+            min={element.min}
+            max={element.max}
+          />
+        )
+      case "date":
+        return (
+          <Input
+            type="date"
             disabled={!isPreview}
             required={element.required}
             name={element.id}
@@ -286,6 +334,18 @@ function FormElementRenderer({
             />
             <label className="text-sm">{element.label}</label>
           </div>
+        )
+      case "heading":
+        return (
+          <h2 className="text-xl font-semibold text-gray-900">
+            {element.content || element.label}
+          </h2>
+        )
+      case "paragraph":
+        return (
+          <p className="text-gray-600">
+            {element.content || element.label}
+          </p>
         )
       default:
         return null
@@ -385,10 +445,11 @@ function FormPreview({ formConfig }: { formConfig: FormConfig }) {
 
   return (
     <div className="bg-white p-6 rounded-lg border">
-      <h3 className="text-xl font-semibold mb-4">{formConfig.title}</h3>
+      <h3 className="text-xl font-semibold mb-2">{formConfig.title}</h3>
+      {formConfig.subtitle && (
+        <p className="text-gray-600 mb-4">{formConfig.subtitle}</p>
+      )}
       <form onSubmit={handleSubmit} className="flex flex-wrap gap-4">
-        {" "}
-        {/* Added flex-wrap and gap */}
         {formConfig.elements.map((element) => (
           <FormElementRenderer
             key={element.id}
@@ -400,7 +461,7 @@ function FormPreview({ formConfig }: { formConfig: FormConfig }) {
         ))}
         {formConfig.elements.length > 0 && (
           <Button type="submit" className="w-full mt-4">
-            Submit Form
+            {formConfig.buttonText || "Submit Form"}
           </Button>
         )}
       </form>
@@ -584,6 +645,31 @@ export default function FormBuilder() {
                 />
               ))}
             </div>
+            <div className="mt-8">
+              <h3 className="font-semibold mb-4">Form Settings</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="subtitle">Form Subtitle</Label>
+                  <Input
+                    id="subtitle"
+                    value={formConfig.subtitle || ""}
+                    onChange={(e) => setFormConfig((prev) => ({ ...prev, subtitle: e.target.value }))}
+                    placeholder="Enter form subtitle"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="buttonText">Submit Button Text</Label>
+                  <Input
+                    id="buttonText"
+                    value={formConfig.buttonText || ""}
+                    onChange={(e) => setFormConfig((prev) => ({ ...prev, buttonText: e.target.value }))}
+                    placeholder="Submit Form"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="mt-8">
               <h3 className="font-semibold mb-4">Submission Settings</h3>
               <div className="space-y-4">

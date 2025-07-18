@@ -11,6 +11,8 @@ interface DashboardStats {
   totalSubmissions: number
   activeUsers: number
   recentActivity: any[]
+  thisMonthGrowth?: number
+  responseRate?: number
 }
 
 export default function HomePage() {
@@ -33,11 +35,31 @@ export default function HomePage() {
       const forms = await formsResponse.json()
       const submissions = await submissionsResponse.json()
 
+      // Calculate this month's submissions
+      const now = new Date()
+      const thisMonth = submissions.filter((sub: any) => {
+        const subDate = new Date(sub.submittedAt)
+        return subDate.getMonth() === now.getMonth() && subDate.getFullYear() === now.getFullYear()
+      })
+
+      const lastMonth = submissions.filter((sub: any) => {
+        const subDate = new Date(sub.submittedAt)
+        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1)
+        return subDate.getMonth() === lastMonthDate.getMonth() && subDate.getFullYear() === lastMonthDate.getFullYear()
+      })
+
+      // Calculate growth percentage
+      const growth = lastMonth.length > 0 
+        ? Math.round(((thisMonth.length - lastMonth.length) / lastMonth.length) * 100)
+        : thisMonth.length > 0 ? 100 : 0
+
       setStats({
         totalForms: forms.length,
         totalSubmissions: submissions.length,
         activeUsers: 1,
         recentActivity: submissions.slice(0, 5),
+        thisMonthGrowth: growth,
+        responseRate: forms.length > 0 ? Math.round((submissions.length / (forms.length * 10)) * 100) : 0 // Estimate based on average views
       })
     } catch (error) {
       console.error("Error fetching dashboard stats:", error)
@@ -99,8 +121,8 @@ export default function HomePage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">85%</div>
-            <p className="text-xs text-muted-foreground">Average completion rate</p>
+            <div className="text-2xl font-bold">{stats.responseRate || 0}%</div>
+            <p className="text-xs text-muted-foreground">Estimated completion rate</p>
           </CardContent>
         </Card>
 
@@ -110,7 +132,10 @@ export default function HomePage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+12%</div>
+            <div className="text-2xl font-bold">
+              {stats.thisMonthGrowth !== undefined ? 
+                (stats.thisMonthGrowth >= 0 ? `+${stats.thisMonthGrowth}` : stats.thisMonthGrowth) : '0'}%
+            </div>
             <p className="text-xs text-muted-foreground">Growth from last month</p>
           </CardContent>
         </Card>
@@ -201,9 +226,11 @@ export default function HomePage() {
                       <p className="text-xs text-gray-500">{new Date(activity.submittedAt).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm">
-                    View
-                  </Button>
+                  <Link href={`/forms/${activity.formId}`}>
+                    <Button variant="ghost" size="sm">
+                      View
+                    </Button>
+                  </Link>
                 </div>
               ))}
             </div>

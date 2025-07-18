@@ -27,6 +27,7 @@ import {
   HelpCircle,
   Database,
   Globe,
+  DollarSign,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 

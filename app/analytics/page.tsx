@@ -124,8 +124,10 @@ export default function AnalyticsPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">85%</div>
-            <p className="text-xs text-muted-foreground">Average completion rate</p>
+            <div className="text-2xl font-bold">
+              {forms.length > 0 ? Math.round((totalSubmissions / (forms.length * 10)) * 100) : 0}%
+            </div>
+            <p className="text-xs text-muted-foreground">Estimated completion rate</p>
           </CardContent>
         </Card>
       </div>

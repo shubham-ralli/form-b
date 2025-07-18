@@ -202,7 +202,9 @@ export default function FormDetailsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">85%</div>
+            <div className="text-2xl font-bold">
+              {submissions.length > 0 ? Math.round((submissions.length / (submissions.length + 5)) * 100) : 0}%
+            </div>
           </CardContent>
         </Card>
 

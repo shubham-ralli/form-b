@@ -35,7 +35,7 @@ export async function getUserIdFromRequest(request: Request): Promise<string | n
   if (!token && cookieHeader) {
     // Extract token from cookie
     const cookies = cookieHeader.split(";").map((c) => c.trim())
-    const authCookie = cookies.find((c) => c.startsWith("auth-token="))
+    const authCookie = cookies.find((c) => c.startsWith("token="))
     if (authCookie) {
       token = authCookie.split("=")[1]
     }

@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for authentication token
-  const token = request.cookies.get("auth-token")?.value
+  const token = request.cookies.get("token")?.value
 
   if (!token) {
     return NextResponse.redirect(new URL("/login", request.url))
@@ -31,7 +31,7 @@ export function middleware(request: NextRequest) {
   // We'll do proper verification in the API routes
   if (!token || token.length < 10) {
     const response = NextResponse.redirect(new URL("/login", request.url))
-    response.cookies.delete("auth-token")
+    response.cookies.delete("token")
     return response
   }
 

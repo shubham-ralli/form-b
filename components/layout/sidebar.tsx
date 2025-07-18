@@ -55,7 +55,7 @@ export function Sidebar({ user }: SidebarProps) {
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" })
-      document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT"
+      document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT"
       router.push("/login")
     } catch (error) {
       console.error("Logout error:", error)

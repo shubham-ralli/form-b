@@ -6,8 +6,8 @@ export const runtime = "nodejs"
 export async function POST() {
   const response = NextResponse.json({ success: true })
 
-  // Clear the auth token cookie
-  response.cookies.set("auth-token", "", {
+  // Clear the token cookie
+  response.cookies.set("token", "", {
     path: "/",
     expires: new Date(0),
     httpOnly: false,

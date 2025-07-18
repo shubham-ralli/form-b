@@ -118,7 +118,7 @@ function ElementSettingsDialog({
     setContent(element.content || "")
   }, [element])
 
-  const hasOptions = ["select", "radio"].includes(element.type)
+  const hasOptions = ["select", "radio", "checkbox"].includes(element.type)
   const hasMinMax = element.type === "number"
   const hasContent = ["heading", "paragraph"].includes(element.type)
 
@@ -275,14 +275,41 @@ function FormElementRenderer({
   element,
   onUpdate,
   onDelete,
+  onReorder,
+  index,
   isPreview = false,
 }: {
   element: FormElement
   onUpdate: (id: string, updates: Partial<FormElement>) => void
   onDelete: (id: string) => void
+  onReorder?: (dragIndex: number, hoverIndex: number) => void
+  index?: number
   isPreview?: boolean
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false)
+
+  const [{ isDragging }, drag] = useDrag({
+    type: 'form-element',
+    item: { id: element.id, index },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+  })
+
+  const [, drop] = useDrop({
+    accept: 'form-element',
+    hover: (item: { id: string; index: number }, monitor) => {
+      if (!onReorder || index === undefined) return
+      
+      const dragIndex = item.index
+      const hoverIndex = index
+
+      if (dragIndex === hoverIndex) return
+
+      onReorder(dragIndex, hoverIndex)
+      item.index = hoverIndex
+    },
+  })
 
   const handleUpdateElement = (updates: Partial<FormElement>) => {
     onUpdate(element.id, updates)
@@ -338,42 +365,66 @@ function FormElementRenderer({
         return (
           <Select disabled={!isPreview} name={element.id} required={element.required}>
             <SelectTrigger>
-              <SelectValue placeholder="Select an option" />
+              <SelectValue placeholder={element.placeholder || "Select an option"} />
             </SelectTrigger>
             <SelectContent>
-              {element.options?.map((option, index) => (
+              {element.options?.length > 0 ? element.options.map((option, index) => (
                 <SelectItem key={index} value={option}>
                   {option}
                 </SelectItem>
-              ))}
+              )) : (
+                <SelectItem value="no-options" disabled>No options available</SelectItem>
+              )}
             </SelectContent>
           </Select>
         )
       case "radio":
         return (
           <RadioGroup disabled={!isPreview} name={element.id} required={element.required}>
-            {element.options?.map((option, index) => (
+            {element.options?.length > 0 ? element.options.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem value={option} id={`${element.id}-${index}`} />
+                <RadioGroupItem value={option} id={`${element.id}-${index}`} disabled={!isPreview} />
                 <Label htmlFor={`${element.id}-${index}`}>{option}</Label>
               </div>
-            ))}
+            )) : (
+              <div className="text-sm text-gray-500">No options available</div>
+            )}
           </RadioGroup>
         )
       case "checkbox":
-        return (
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              name={element.id}
-              value="true"
-              disabled={!isPreview}
-              required={element.required}
-              className="h-4 w-4"
-            />
-            <label className="text-sm">{element.label}</label>
-          </div>
-        )
+        if (element.options && element.options.length > 0) {
+          return (
+            <div className="space-y-2">
+              {element.options.map((option, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    name={element.id}
+                    value={option}
+                    disabled={!isPreview}
+                    id={`${element.id}-${index}`}
+                    className="h-4 w-4"
+                  />
+                  <label htmlFor={`${element.id}-${index}`} className="text-sm">{option}</label>
+                </div>
+              ))}
+            </div>
+          )
+        } else {
+          return (
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                name={element.id}
+                value="true"
+                disabled={!isPreview}
+                required={element.required}
+                className="h-4 w-4"
+              />
+              <label className="text-sm">{element.label}</label>
+            </div>
+          )
+        }
       case "heading":
         return (
           <h2 className="text-xl font-semibold text-gray-900">
@@ -394,12 +445,18 @@ function FormElementRenderer({
   return (
     <>
       <div
+        ref={(node) => {
+          if (!isPreview && onReorder) {
+            drag(drop(node))
+          }
+        }}
         className={cn(
           "group relative p-4 border rounded-lg transition-all duration-200",
           isPreview 
             ? "border-gray-200 bg-white" 
-            : "hover:border-blue-300 hover:shadow-md bg-gray-50 hover:bg-white",
-          "w-full" // Remove width class application here since we handle it in DropZone
+            : "hover:border-blue-300 hover:shadow-md bg-gray-50 hover:bg-white cursor-move",
+          isDragging && !isPreview ? "opacity-50" : "",
+          "w-full"
         )}
       >
         {!isPreview && (
@@ -460,11 +517,13 @@ function DropZone({
   onDrop,
   onUpdate,
   onDelete,
+  onReorder,
 }: {
   elements: FormElement[]
   onDrop: (item: { type: string }) => void
   onUpdate: (id: string, updates: Partial<FormElement>) => void
   onDelete: (id: string) => void
+  onReorder: (dragIndex: number, hoverIndex: number) => void
 }) {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "element",
@@ -514,12 +573,16 @@ function DropZone({
                   <FormElementRenderer 
                     element={element} 
                     onUpdate={onUpdate} 
-                    onDelete={onDelete} 
+                    onDelete={onDelete}
+                    onReorder={onReorder}
+                    index={index}
                   />
                   <FormElementRenderer 
                     element={elements[index + 1]} 
                     onUpdate={onUpdate} 
-                    onDelete={onDelete} 
+                    onDelete={onDelete}
+                    onReorder={onReorder}
+                    index={index + 1}
                   />
                 </div>
               );
@@ -531,7 +594,9 @@ function DropZone({
                 <FormElementRenderer 
                   element={element} 
                   onUpdate={onUpdate} 
-                  onDelete={onDelete} 
+                  onDelete={onDelete}
+                  onReorder={onReorder}
+                  index={index}
                 />
               </div>
             );
@@ -655,7 +720,10 @@ export default function FormBuilder() {
       required: false,
       width: "w-full", // Default to full width
       ...(item.type === "select" || item.type === "radio" ? { options: ["Option 1", "Option 2", "Option 3"] } : {}),
-      ...(item.type === "checkbox" ? { label: "Check this box" } : {}), // Default label for checkbox
+      ...(item.type === "checkbox" ? { 
+        label: "Check this box",
+        options: [] // Empty options for single checkbox, can be populated for multiple checkboxes
+      } : {})
     }
 
     setFormConfig((prev) => ({
@@ -676,6 +744,19 @@ export default function FormBuilder() {
       ...prev,
       elements: prev.elements.filter((el) => el.id !== id),
     }))
+  }, [])
+
+  const handleReorderElement = useCallback((dragIndex: number, hoverIndex: number) => {
+    setFormConfig((prev) => {
+      const newElements = [...prev.elements]
+      const draggedElement = newElements[dragIndex]
+      newElements.splice(dragIndex, 1)
+      newElements.splice(hoverIndex, 0, draggedElement)
+      return {
+        ...prev,
+        elements: newElements,
+      }
+    })
   }, [])
 
   const handleSaveForm = async () => {
@@ -865,6 +946,7 @@ export default function FormBuilder() {
                     onDrop={handleDrop}
                     onUpdate={handleUpdateElement}
                     onDelete={handleDeleteElement}
+                    onReorder={handleReorderElement}
                   />
                 </CardContent>
               </Card>

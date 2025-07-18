@@ -42,10 +42,53 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const submissionData = await request.json()
+    const formData = await request.json()
+    const { formId } = formData
+
+    if (!formId) {
+      return NextResponse.json({ error: "Form ID is required" }, { status: 400 })
+    }
 
     const client = await clientPromise
     const db = client.db("formcraft")
+
+    // Get the form to verify it exists and is active
+    const forms = db.collection("forms")
+    const form = await forms.findOne({ _id: new ObjectId(formId) })
+
+    if (!form) {
+      return NextResponse.json({ error: "Form not found" }, { status: 404 })
+    }
+
+    if (!form.isActive) {
+      return NextResponse.json({ error: "Form is not active" }, { status: 400 })
+    }
+
+    // Check submission limits for free plan users
+    const users = db.collection("users")
+    const user = await users.findOne({ _id: form.userId })
+
+    if (user && (user.plan === "free" || !user.plan)) {
+      const submissions = db.collection("submissions")
+      const currentMonth = new Date()
+      currentMonth.setDate(1)
+      currentMonth.setHours(0, 0, 0, 0)
+
+      const monthlySubmissions = await submissions.countDocuments({
+        userId: form.userId,
+        createdAt: { $gte: currentMonth }
+      })
+
+      if (monthlySubmissions >= 10) {
+        return NextResponse.json(
+          { error: "Free plan allows maximum 10 submissions per month. Please upgrade to continue receiving submissions." },
+          { status: 403 }
+        )
+      }
+    }
+
+    const submissionData = await request.json()
+
     const submissionsCollection = db.collection("submissions")
 
     const newSubmission = {

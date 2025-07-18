@@ -71,6 +71,9 @@
             return;
           }
 
+          // Set form start time for bot detection
+          window.formStartTime = Date.now();
+
           // Generate form HTML
           const formHTML = this.generateFormHTML(formConfig, apiUrl);
           container.innerHTML = formHTML;
@@ -236,7 +239,40 @@
         }
       }
 
-      // Submit to FormCraft API
+      // Get user location (basic)
+      let userLocation = 'Unknown';
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            userLocation = `${position.coords.latitude.toFixed(2)}, ${position.coords.longitude.toFixed(2)}`;
+          },
+          () => {
+            // Use timezone as fallback
+            userLocation = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          }
+        );
+      } else {
+        userLocation = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      }
+
+      // Basic bot detection
+      const botCheck = form.querySelector('input[name="bot_check"]');
+      const isBotDetected = botCheck && botCheck.value !== "";
+
+      // Honeypot Check
+      if (botCheck && botCheck.value !== "") {
+        alert('Possible bot detected!');
+        return false;
+      }
+
+      // Time Check
+      let formFillTime = Date.now() - window.formStartTime;
+      if (formFillTime < 1000) {
+          alert('Possible bot: Form filled too quickly!');
+          return false;
+      }
+
+      // Submit to API
       fetch(`${apiUrl}/api/submissions`, {
         method: "POST",
         headers: {
@@ -245,6 +281,10 @@
         body: JSON.stringify({
           formId: formConfig.id,
           data: data,
+          isBotDetected: isBotDetected,
+          location: userLocation,
+          userAgent: navigator.userAgent,
+          fillTime: formFillTime
         }),
       })
         .then((response) => {

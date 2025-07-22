@@ -1,118 +1,235 @@
+
 "use client"
 
-import type React from "react"
-
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { User, Lock, Save } from "lucide-react"
+
+interface User {
+  id: string
+  name: string
+  email: string
+}
 
 export default function SettingsPage() {
-  const [userName, setUserName] = useState("John Doe")
-  const [userEmail, setUserEmail] = useState("john.doe@example.com")
-  const [oldPassword, setOldPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmNewPassword, setConfirmNewPassword] = useState("")
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  })
 
-  const handleProfileSave = (e: React.FormEvent) => {
-    e.preventDefault()
-    alert("Profile settings saved!")
-    // Implement actual save logic here
+  useEffect(() => {
+    fetchUserData()
+  }, [])
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const userData = await response.json()
+        setUser(userData)
+        setFormData(prev => ({ ...prev, name: userData.name }))
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handleNameUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (newPassword !== confirmNewPassword) {
-      alert("New passwords do not match!")
+    if (!formData.name.trim()) return
+
+    setSaving(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch("/api/auth/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: formData.name }),
+      })
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Name updated successfully" })
+        fetchUserData() // Refresh user data
+      } else {
+        setMessage({ type: "error", text: "Failed to update name" })
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Error updating name" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (formData.newPassword !== formData.confirmPassword) {
+      setMessage({ type: "error", text: "New passwords do not match" })
       return
     }
-    alert("Password changed successfully!")
-    // Implement actual password change logic here
-    setOldPassword("")
-    setNewPassword("")
-    setConfirmNewPassword("")
+
+    if (formData.newPassword.length < 6) {
+      setMessage({ type: "error", text: "New password must be at least 6 characters" })
+      return
+    }
+
+    setSaving(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch("/api/auth/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword 
+        }),
+      })
+
+      if (response.ok) {
+        setMessage({ type: "success", text: "Password updated successfully" })
+        setFormData(prev => ({ 
+          ...prev, 
+          currentPassword: "", 
+          newPassword: "", 
+          confirmPassword: "" 
+        }))
+      } else {
+        const error = await response.json()
+        setMessage({ type: "error", text: error.error || "Failed to update password" })
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Error updating password" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-gray-200 pb-4">
+      <div>
         <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-2">Manage your account and application settings.</p>
+        <p className="text-gray-600 mt-2">Manage your account settings and preferences.</p>
       </div>
 
+      {message && (
+        <Alert className={message.type === "success" ? "border-green-200 bg-green-50" : ""}>
+          <AlertDescription className={message.type === "success" ? "text-green-800" : ""}>
+            {message.text}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Profile Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Profile Settings</CardTitle>
-          <CardDescription>Update your personal information.</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Profile Information
+          </CardTitle>
+          <CardDescription>Update your profile details.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleProfileSave} className="space-y-4">
+          <form onSubmit={handleNameUpdate} className="space-y-4">
             <div>
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={userName} onChange={(e) => setUserName(e.target.value)} />
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter your full name"
+              />
             </div>
             <div>
               <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
                 type="email"
-                value={userEmail}
-                onChange={(e) => setUserEmail(e.target.value)}
+                value={user?.email || ""}
                 disabled
+                className="bg-gray-50"
               />
+              <p className="text-sm text-gray-500 mt-1">Email cannot be changed</p>
             </div>
-            <Button type="submit">Save Profile</Button>
+            <Button type="submit" disabled={saving}>
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
           </form>
         </CardContent>
       </Card>
 
+      {/* Password Settings */}
       <Card>
         <CardHeader>
-          <CardTitle>Change Password</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="h-5 w-5" />
+            Change Password
+          </CardTitle>
           <CardDescription>Update your account password.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handlePasswordChange} className="space-y-4">
+          <form onSubmit={handlePasswordUpdate} className="space-y-4">
             <div>
-              <Label htmlFor="old-password">Current Password</Label>
+              <Label htmlFor="currentPassword">Current Password</Label>
               <Input
-                id="old-password"
+                id="currentPassword"
                 type="password"
-                value={oldPassword}
-                onChange={(e) => setOldPassword(e.target.value)}
+                value={formData.currentPassword}
+                onChange={(e) => setFormData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                placeholder="Enter your current password"
               />
             </div>
             <div>
-              <Label htmlFor="new-password">New Password</Label>
+              <Label htmlFor="newPassword">New Password</Label>
               <Input
-                id="new-password"
+                id="newPassword"
                 type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                value={formData.newPassword}
+                onChange={(e) => setFormData(prev => ({ ...prev, newPassword: e.target.value }))}
+                placeholder="Enter your new password"
               />
             </div>
             <div>
-              <Label htmlFor="confirm-new-password">Confirm New Password</Label>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
               <Input
-                id="confirm-new-password"
+                id="confirmPassword"
                 type="password"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                value={formData.confirmPassword}
+                onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                placeholder="Confirm your new password"
               />
             </div>
-            <Button type="submit">Change Password</Button>
+            <Button type="submit" disabled={saving || !formData.currentPassword || !formData.newPassword}>
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? "Updating..." : "Update Password"}
+            </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>API Keys</CardTitle>
-          <CardDescription>Manage your API keys for integrations.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600">API key management coming soon!</p>
         </CardContent>
       </Card>
     </div>

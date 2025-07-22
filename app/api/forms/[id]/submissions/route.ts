@@ -41,3 +41,48 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { data } = await request.json()
+    
+    const client = await clientPromise
+    const db = client.db("formcraft")
+    const formsCollection = db.collection("forms")
+    const submissionsCollection = db.collection("submissions")
+
+    // Verify the form exists and is active
+    const form = await formsCollection.findOne({ _id: new ObjectId(params.id) })
+    if (!form) {
+      return NextResponse.json({ error: "Form not found" }, { status: 404 })
+    }
+
+    if (!form.isActive) {
+      return NextResponse.json({ error: "Form is not active" }, { status: 400 })
+    }
+
+    // Get client IP and user agent
+    const forwarded = request.headers.get("x-forwarded-for")
+    const ip = forwarded ? forwarded.split(",")[0] : request.headers.get("x-real-ip") || "unknown"
+    const userAgent = request.headers.get("user-agent") || "unknown"
+
+    // Create submission
+    const submission = {
+      formId: params.id,
+      data: data,
+      submittedAt: new Date().toISOString(),
+      ipAddress: ip,
+      userAgent: userAgent,
+    }
+
+    const result = await submissionsCollection.insertOne(submission)
+
+    return NextResponse.json({ 
+      success: true, 
+      submissionId: result.insertedId.toString() 
+    })
+  } catch (error) {
+    console.error("Error creating submission:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

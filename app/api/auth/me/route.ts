@@ -1,78 +1,92 @@
-import { NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { getUserIdFromRequest } from "@/lib/auth"
 import clientPromise from "@/lib/mongodb"
-import jwt from "jsonwebtoken"
 import { ObjectId } from "mongodb"
+import bcrypt from "bcryptjs"
+
+export const runtime = "nodejs"
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value
-
-    if (!token) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      )
+    const userId = await getUserIdFromRequest(request)
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string }
     const client = await clientPromise
     const db = client.db("formcraft")
+    const users = db.collection("users")
 
-    // Convert string ID to ObjectId for MongoDB query
-    const user = await db.collection("users").findOne(
-      { _id: new ObjectId(decoded.userId) },
-      { projection: { password: 0 } }
+    const user = await users.findOne(
+      { _id: new ObjectId(userId) },
+      { projection: { password: 0 } } // Exclude password from response
     )
 
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      id: user._id.toString(),
+      email: user.email,
+      name: user.name,
+      role: user.role || "user",
+    })
+  } catch (error) {
+    console.error("Error fetching user:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const userId = await getUserIdFromRequest(request)
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { name, currentPassword, newPassword } = await request.json()
+
+    const client = await clientPromise
+    const db = client.db("formcraft")
+    const users = db.collection("users")
+
+    const user = await users.findOne({ _id: new ObjectId(userId) })
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const updateData: any = {}
+
+    // Update name if provided
+    if (name && name.trim()) {
+      updateData.name = name.trim()
+    }
+
+    // Update password if provided
+    if (currentPassword && newPassword) {
+      // Verify current password
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password)
+      if (!isValidPassword) {
+        return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 })
+      }
+
+      // Hash new password
+      const saltRounds = 10
+      updateData.password = await bcrypt.hash(newPassword, saltRounds)
+    }
+
+    // Update user
+    if (Object.keys(updateData).length > 0) {
+      await users.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: updateData }
       )
     }
 
-    // Get form count for this user
-    const formsCount = await db.collection("forms").countDocuments({ userId: decoded.userId })
-
-    // Get submissions count for this month
-    const startOfMonth = new Date()
-    startOfMonth.setDate(1)
-    startOfMonth.setHours(0, 0, 0, 0)
-
-    const submissions = await db.collection("submissions").aggregate([
-      {
-        $lookup: {
-          from: "forms",
-          localField: "formId",
-          foreignField: "_id",
-          as: "form"
-        }
-      },
-      {
-        $match: {
-          "form.userId": decoded.userId,
-          submittedAt: { $gte: startOfMonth }
-        }
-      },
-      {
-        $count: "total"
-      }
-    ]).toArray()
-
-    const submissionsThisMonth = submissions.length > 0 ? submissions[0].total : 0
-
-    return NextResponse.json({
-      ...user,
-      formsUsed: formsCount,
-      submissionsThisMonth,
-      plan: user.plan || "free",
-      role: user.role || 'user',
-    })
+    return NextResponse.json({ message: "Profile updated successfully" })
   } catch (error) {
-    console.error("Auth API error:", error)
-    return NextResponse.json(
-      { error: "Server error" },
-      { status: 500 }
-    )
+    console.error("Error updating user:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

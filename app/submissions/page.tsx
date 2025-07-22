@@ -78,7 +78,7 @@ export default function SubmissionsPage() {
   }
 
   const getFormTitle = (formId: string) => {
-    return forms.find((f) => f.id === formId)?.title || "Unknown Form"
+    return forms.find((f) => (f._id || f.id) === formId)?.title || "Unknown Form"
   }
 
   const downloadAllSubmissionsCSV = () => {

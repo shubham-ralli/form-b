@@ -37,16 +37,17 @@ export default function EmbedPage() {
     try {
       const response = await fetch("/api/forms")
       const data = await response.json()
-      setForms(data)
+      // Handle both array response and object with forms property
+      const formsData = Array.isArray(data) ? data : (data.forms || [])
+      setForms(formsData)
     } catch (error) {
       console.error("Error fetching forms:", error)
+      setForms([])
     }
   }
 
   const generateEmbedCode = (formId: string) => {
-    return `
-<!-- Alternative: Simple data attribute method -->
-<div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
+    return `<div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
 <script src="${baseUrl}/embed.js"></script>`
   }
 

@@ -22,12 +22,15 @@ export default function TestPage() {
     try {
       const response = await fetch("/api/forms")
       const data = await response.json()
-      setForms(data)
-      if (data.length > 0) {
-        setSelectedFormId(data[0].id)
+      // Handle both array response and object with forms property
+      const formsData = Array.isArray(data) ? data : (data.forms || [])
+      setForms(formsData)
+      if (formsData.length > 0) {
+        setSelectedFormId(formsData[0]._id)
       }
     } catch (error) {
       console.error("Error fetching forms:", error)
+      setForms([])
     }
   }
 

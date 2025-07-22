@@ -132,11 +132,8 @@ export default function FormsPage() {
   }
 
   const copyEmbedCode = (formId: string) => {
-    const embedCode = `<div id="formcraft-${formId}"></div>
-<script src="${window.location.origin}/embed.js"></script>
-<script>
-  FormCraft.render('${formId}', 'formcraft-${formId}');
-</script>`
+    const embedCode = `<div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
+<script src="${window.location.origin}/embed.js"></script>`
     
     navigator.clipboard.writeText(embedCode)
     toast.success("Embed code copied to clipboard!")

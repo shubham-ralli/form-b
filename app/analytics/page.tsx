@@ -149,7 +149,7 @@ export default function AnalyticsPage() {
           ) : (
             <div className="space-y-4">
               {filteredSubmissions.slice(0, 10).map((submission) => {
-                const form = forms.find((f) => f.id === submission.formId)
+                const form = forms.find((f) => f._id === submission.formId || f.id === submission.formId)
                 return (
                   <div key={submission.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-2">

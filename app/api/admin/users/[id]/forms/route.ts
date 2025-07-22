@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
@@ -13,10 +12,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Validate params.id
+    if (!params.id || params.id === 'undefined' || params.id.length !== 24) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
+    }
+
     const client = await clientPromise
     const db = client.db("formcraft")
-    const users = db.collection("users")
     const forms = db.collection("forms")
+    const users = db.collection("users")
     const submissions = db.collection("submissions")
 
     // Check if current user is admin

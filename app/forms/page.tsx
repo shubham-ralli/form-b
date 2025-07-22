@@ -42,13 +42,17 @@ export default function FormsPage() {
       const response = await fetch("/api/forms")
       if (response.ok) {
         const data = await response.json()
-        setForms(data.forms)
+        // Handle both array response and object with forms property
+        const formsData = Array.isArray(data) ? data : (data.forms || [])
+        setForms(formsData)
       } else {
         toast.error("Failed to fetch forms")
+        setForms([])
       }
     } catch (error) {
       console.error("Error fetching forms:", error)
       toast.error("Error fetching forms")
+      setForms([])
     } finally {
       setLoading(false)
     }
@@ -203,7 +207,7 @@ export default function FormsPage() {
       </div>
 
       <div className="grid gap-6">
-        {forms.map((form) => (
+        {forms && forms.length > 0 && forms.map((form) => (
           <Card key={form._id}>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -299,7 +303,7 @@ export default function FormsPage() {
         ))}
       </div>
 
-      {forms.length === 0 && (
+      {(!forms || forms.length === 0) && !loading && (
         <div className="text-center py-8">
           <p className="text-gray-500 mb-4">No forms created yet</p>
           <Button onClick={() => setShowCreateDialog(true)}>

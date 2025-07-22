@@ -27,14 +27,19 @@ export async function GET(request: NextRequest) {
       userForms.map(async (form) => {
         const submissionCount = await submissions.countDocuments({ formId: form._id.toString() })
         return {
-          ...form,
-          id: form._id.toString(),
-          submissions: submissionCount,
+          _id: form._id.toString(),
+          title: form.title || "Untitled Form",
+          description: form.description || "",
+          isActive: form.isActive !== false,
+          createdAt: form.createdAt || new Date().toISOString(),
+          updatedAt: form.updatedAt || new Date().toISOString(),
+          submissionCount: submissionCount || 0,
+          userId: form.userId
         }
       }),
     )
 
-    return NextResponse.json(formsWithCounts)
+    return NextResponse.json({ forms: formsWithCounts })
   } catch (error) {
     console.error("Error fetching forms:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

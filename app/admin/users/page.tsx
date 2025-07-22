@@ -22,6 +22,7 @@ interface User {
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     fetchUsers()
@@ -32,13 +33,16 @@ export default function AdminUsersPage() {
       const response = await fetch("/api/admin/users")
       if (response.ok) {
         const data = await response.json()
-        setUsers(data.users)
+        const usersData = Array.isArray(data) ? data : (data.users || [])
+        setUsers(usersData)
       } else {
         toast.error("Failed to fetch users")
+        setUsers([])
       }
     } catch (error) {
       console.error("Error fetching users:", error)
       toast.error("Error fetching users")
+      setUsers([])
     } finally {
       setLoading(false)
     }
@@ -94,6 +98,11 @@ export default function AdminUsersPage() {
     )
   }
 
+  const filteredUsers = users ? users.filter(user =>
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) : []
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
@@ -105,7 +114,7 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="grid gap-6">
-        {users.map((user) => (
+        {filteredUsers && filteredUsers.length > 0 && filteredUsers.map((user) => (
           <Card key={user._id}>
             <CardHeader>
               <div className="flex items-center justify-between">

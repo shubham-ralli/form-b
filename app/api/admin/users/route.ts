@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
@@ -30,19 +29,21 @@ export async function GET(request: NextRequest) {
     // Get form statistics for each user
     const usersWithStats = await Promise.all(
       allUsers.map(async (user) => {
-        const userForms = await forms.find({ userId: user._id }).toArray()
-        const totalForms = userForms.length
-        const activeForms = userForms.filter(form => form.isActive !== false).length
+        const totalForms = await forms.countDocuments({ userId: user._id })
+        const activeForms = await forms.countDocuments({ 
+          userId: user._id, 
+          isActive: true 
+        })
 
         return {
-          id: user._id.toString(),
-          name: user.name || 'No name',
+          _id: user._id.toString(),
+          name: user.name,
           email: user.email,
           role: user.role || 'user',
-          totalForms,
-          activeForms,
+          isActive: user.isActive !== false,
           createdAt: user.createdAt,
-          isActive: user.isActive !== false
+          totalForms,
+          activeForms
         }
       })
     )

@@ -59,6 +59,7 @@ export default function AdminUsersPage() {
       if (response.ok) {
         const data = await response.json()
         const usersData = Array.isArray(data) ? data : (data.users || [])
+        console.log("Fetched users data:", usersData)
         setUsers(usersData)
       } else {
         toast.error("Failed to fetch users")
@@ -75,6 +76,12 @@ export default function AdminUsersPage() {
 
   const handleDeleteUser = async (userId: string) => {
     try {
+      console.log("Deleting user with ID:", userId)
+      if (!userId || userId === 'undefined') {
+        toast.error("Invalid user ID")
+        return
+      }
+      
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: "DELETE",
       })
@@ -83,7 +90,8 @@ export default function AdminUsersPage() {
         toast.success("User deleted successfully")
         fetchUsers()
       } else {
-        toast.error("Failed to delete user")
+        const errorData = await response.json()
+        toast.error(errorData.error || "Failed to delete user")
       }
     } catch (error) {
       console.error("Error deleting user:", error)
@@ -93,6 +101,12 @@ export default function AdminUsersPage() {
 
   const handleToggleUserStatus = async (userId: string, isActive: boolean) => {
     try {
+      console.log("Toggling user status for ID:", userId)
+      if (!userId || userId === 'undefined') {
+        toast.error("Invalid user ID")
+        return
+      }
+      
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
         headers: {
@@ -105,7 +119,8 @@ export default function AdminUsersPage() {
         toast.success(`User ${!isActive ? "activated" : "deactivated"} successfully`)
         fetchUsers()
       } else {
-        toast.error("Failed to update user status")
+        const errorData = await response.json()
+        toast.error(errorData.error || "Failed to update user status")
       }
     } catch (error) {
       console.error("Error updating user status:", error)

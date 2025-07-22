@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -29,7 +30,7 @@ import {
   Globe,
   DollarSign,
   CreditCard,
-  Users, // Add the missing Users icon import
+  Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -174,20 +175,21 @@ function SidebarContent({
               {item.name}
             </Link>
           )
-        })}</nav>
-              <Link
-              key="Pricing"
-              href="/pricing"
-              className={cn(
-                "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                pathname === "/pricing"
-                  ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-              )}
-            >
-              <CreditCard className={cn("mr-3 h-5 w-5 flex-shrink-0", pathname === "/pricing" ? "text-blue-500" : "text-gray-400")} />
-              Pricing
-            </Link>
+        })}
+
+        {/* Pricing Link */}
+        <Link
+          href="/pricing"
+          className={cn(
+            "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+            pathname === "/pricing"
+              ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+          )}
+        >
+          <CreditCard className={cn("mr-3 h-5 w-5 flex-shrink-0", pathname === "/pricing" ? "text-blue-500" : "text-gray-400")} />
+          Pricing
+        </Link>
       </nav>
 
       {/* User menu */}

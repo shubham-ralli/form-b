@@ -1,3 +1,4 @@
+
 "use client"
 
 import type React from "react"
@@ -13,10 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Trash2, Settings, Save, Eye, Plus, X } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { cn } from "@/lib/utils" // Corrected import path
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { Trash2, Settings, Save, Eye, Plus, X, ArrowLeft, Palette, Layers, Type, Hash, Calendar, Mail, Phone, Link, FileText, List, Circle, CheckSquare, Heading1, AlignLeft, Star, Copy, ChevronDown, HelpCircle } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { cn } from "@/lib/utils"
 import { useForms } from "@/contexts/FormsContext"
 import { toast } from "sonner"
 
@@ -27,10 +30,27 @@ interface FormElement {
   placeholder?: string
   required?: boolean
   options?: string[]
-  width?: "w-full" | "w-1/2"
+  width?: "w-full" | "w-1/2" | "w-1/3" | "w-2/3"
   min?: number
   max?: number
-  content?: string // For heading and paragraph elements
+  content?: string
+  description?: string
+  defaultValue?: string
+  validation?: {
+    pattern?: string
+    minLength?: number
+    maxLength?: number
+    customError?: string
+  }
+  logic?: {
+    showIf?: string
+    hideIf?: string
+  }
+  style?: {
+    fontSize?: string
+    color?: string
+    backgroundColor?: string
+  }
 }
 
 interface FormConfig {
@@ -43,26 +63,38 @@ interface FormConfig {
   successMessageHtml?: string
   isActive: boolean
   buttonText?: string
-  headerText?: string
+  theme?: {
+    primaryColor?: string
+    backgroundColor?: string
+    fontFamily?: string
+  }
 }
 
 const ELEMENT_TYPES = [
-  { type: "text", label: "Text Input", icon: "📝" },
-  { type: "email", label: "Email Input", icon: "📧" },
-  { type: "password", label: "Password Input", icon: "🔒" },
-  { type: "number", label: "Number Input", icon: "🔢" },
-  { type: "date", label: "Date Input", icon: "📅" },
-  { type: "tel", label: "Phone Input", icon: "📞" },
-  { type: "url", label: "URL Input", icon: "🔗" },
-  { type: "textarea", label: "Text Area", icon: "📄" },
-  { type: "select", label: "Select Dropdown", icon: "📋" },
-  { type: "radio", label: "Radio Buttons", icon: "🔘" },
-  { type: "checkbox", label: "Checkbox", icon: "☑️" },
-  { type: "heading", label: "Heading", icon: "📰" },
-  { type: "paragraph", label: "Paragraph", icon: "📝" },
+  { type: "text", label: "Text Input", icon: Type, category: "Input" },
+  { type: "email", label: "Email", icon: Mail, category: "Input" },
+  { type: "password", label: "Password", icon: Hash, category: "Input" },
+  { type: "number", label: "Number", icon: Hash, category: "Input" },
+  { type: "date", label: "Date", icon: Calendar, category: "Input" },
+  { type: "tel", label: "Phone", icon: Phone, category: "Input" },
+  { type: "url", label: "URL", icon: Link, category: "Input" },
+  { type: "textarea", label: "Text Area", icon: FileText, category: "Input" },
+  { type: "select", label: "Dropdown", icon: ChevronDown, category: "Choice" },
+  { type: "radio", label: "Radio", icon: Circle, category: "Choice" },
+  { type: "checkbox", label: "Checkbox", icon: CheckSquare, category: "Choice" },
+  { type: "heading", label: "Heading", icon: Heading1, category: "Content" },
+  { type: "paragraph", label: "Paragraph", icon: AlignLeft, category: "Content" },
+  { type: "rating", label: "Rating", icon: Star, category: "Special" },
+  { type: "file", label: "File Upload", icon: Plus, category: "Special" }
 ]
 
-function DraggableElement({ type, label, icon }: { type: string; label: string; icon: string }) {
+function ElementIcon({ type, className }: { type: string; className?: string }) {
+  const elementType = ELEMENT_TYPES.find(el => el.type === type)
+  const IconComponent = elementType?.icon || Type
+  return <IconComponent className={className} />
+}
+
+function DraggableElement({ type, label, icon: IconComponent }: { type: string; label: string; icon: any }) {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "element",
     item: { type },
@@ -74,202 +106,14 @@ function DraggableElement({ type, label, icon }: { type: string; label: string; 
   return (
     <div
       ref={drag}
-      className={`p-3 border rounded-lg cursor-move hover:bg-gray-50 transition-colors ${
-        isDragging ? "opacity-50" : ""
-      }`}
+      className={cn(
+        "flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-move hover:border-blue-300 hover:bg-blue-50 transition-all duration-200",
+        isDragging && "opacity-50"
+      )}
     >
-      <div className="flex items-center gap-2">
-        <span className="text-lg">{icon}</span>
-        <span className="text-sm font-medium">{label}</span>
-      </div>
+      <IconComponent className="h-4 w-4 text-gray-600" />
+      <span className="text-sm font-medium text-gray-700">{label}</span>
     </div>
-  )
-}
-
-function ElementSettingsDialog({
-  element,
-  onUpdate,
-  open,
-  onOpenChange,
-}: {
-  element: FormElement
-  onUpdate: (updates: Partial<FormElement>) => void
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
-  const [label, setLabel] = useState(element.label)
-  const [placeholder, setPlaceholder] = useState(element.placeholder || "")
-  const [required, setRequired] = useState(element.required || false)
-  const [options, setOptions] = useState(element.options || [])
-  const [newOption, setNewOption] = useState("")
-  const [width, setWidth] = useState(element.width || "w-full")
-  const [min, setMin] = useState(element.min || "")
-  const [max, setMax] = useState(element.max || "")
-  const [content, setContent] = useState(element.content || "")
-
-  useEffect(() => {
-    // Reset state when element changes (dialog opens for a new element)
-    setLabel(element.label)
-    setPlaceholder(element.placeholder || "")
-    setRequired(element.required || false)
-    setOptions(element.options || [])
-    setNewOption("")
-    setWidth(element.width || "w-full")
-    setMin(element.min || "")
-    setMax(element.max || "")
-    setContent(element.content || "")
-  }, [element])
-
-  const hasOptions = ["select", "radio"].includes(element.type)
-  const hasMinMax = element.type === "number"
-  const hasContent = ["heading", "paragraph"].includes(element.type)
-
-  const handleSave = () => {
-    onUpdate({
-      label,
-      placeholder: placeholder || undefined,
-      required,
-      options: hasOptions ? options : undefined,
-      width,
-      min: hasMinMax && min ? Number(min) : undefined,
-      max: hasMinMax && max ? Number(max) : undefined,
-      content: hasContent ? content : undefined,
-    })
-    onOpenChange(false)
-  }
-
-  const addOption = () => {
-    if (newOption.trim()) {
-      setOptions((prev) => [...prev, newOption.trim()])
-      setNewOption("")
-    }
-  }
-
-  const removeOption = (index: number) => {
-    setOptions((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Element Settings</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="label">Label</Label>
-            <Input
-              id="label"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="Enter field label"
-            />
-          </div>
-
-          {element.type !== "checkbox" && (
-            <div>
-              <Label htmlFor="placeholder">Placeholder</Label>
-              <Input
-                id="placeholder"
-                value={placeholder}
-                onChange={(e) => setPlaceholder(e.target.value)}
-                placeholder="Enter placeholder text"
-              />
-            </div>
-          )}
-
-          <div className="flex items-center space-x-2">
-            <Switch id="required" checked={required} onCheckedChange={setRequired} />
-            <Label htmlFor="required">Required field</Label>
-          </div>
-
-          <div>
-            <Label htmlFor="width">Width</Label>
-            <Select value={width} onValueChange={setWidth}>
-              <SelectTrigger id="width">
-                <SelectValue placeholder="Select width" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="w-full">Full Width</SelectItem>
-                <SelectItem value="w-1/2">Half Width</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {hasContent && (
-            <div>
-              <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Enter content text"
-                rows={3}
-              />
-            </div>
-          )}
-
-          {hasMinMax && (
-            <>
-              <div>
-                <Label htmlFor="min">Minimum Value</Label>
-                <Input
-                  id="min"
-                  type="number"
-                  value={min}
-                  onChange={(e) => setMin(e.target.value)}
-                  placeholder="Enter minimum value"
-                />
-              </div>
-              <div>
-                <Label htmlFor="max">Maximum Value</Label>
-                <Input
-                  id="max"
-                  type="number"
-                  value={max}
-                  onChange={(e) => setMax(e.target.value)}
-                  placeholder="Enter maximum value"
-                />
-              </div>
-            </>
-          )}
-
-          {hasOptions && (
-            <div>
-              <Label>Options</Label>
-              <div className="space-y-2">
-                {options.map((option, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input value={option} readOnly />
-                    <Button type="button" variant="outline" size="sm" onClick={() => removeOption(index)}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={newOption}
-                    onChange={(e) => setNewOption(e.target.value)}
-                    placeholder="Add new option"
-                    onKeyPress={(e) => e.key === "Enter" && addOption()}
-                  />
-                  <Button type="button" variant="outline" size="sm" onClick={addOption}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave}>Save</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -277,19 +121,17 @@ function FormElementRenderer({
   element,
   onUpdate,
   onDelete,
+  onSelect,
+  isSelected = false,
   isPreview = false,
 }: {
   element: FormElement
   onUpdate: (id: string, updates: Partial<FormElement>) => void
   onDelete: (id: string) => void
+  onSelect: (element: FormElement | null) => void
+  isSelected?: boolean
   isPreview?: boolean
 }) {
-  const [settingsOpen, setSettingsOpen] = useState(false)
-
-  const handleUpdateElement = (updates: Partial<FormElement>) => {
-    onUpdate(element.id, updates)
-  }
-
   const renderElement = () => {
     switch (element.type) {
       case "text":
@@ -298,162 +140,259 @@ function FormElementRenderer({
       case "tel":
       case "url":
         return (
-          <Input
-            type={element.type}
-            placeholder={element.placeholder || `Enter ${element.label.toLowerCase()}`}
-            disabled={!isPreview}
-            required={element.required}
-            name={element.id}
-          />
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {element.label}
+              {element.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            {element.description && (
+              <p className="text-xs text-gray-500">{element.description}</p>
+            )}
+            <Input
+              type={element.type}
+              placeholder={element.placeholder || `Enter ${element.label.toLowerCase()}`}
+              disabled={!isPreview}
+              required={element.required}
+              defaultValue={element.defaultValue}
+              className="w-full"
+            />
+          </div>
         )
+      
       case "number":
         return (
-          <Input
-            type="number"
-            placeholder={element.placeholder || `Enter ${element.label.toLowerCase()}`}
-            disabled={!isPreview}
-            required={element.required}
-            name={element.id}
-            min={element.min}
-            max={element.max}
-          />
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {element.label}
+              {element.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            {element.description && (
+              <p className="text-xs text-gray-500">{element.description}</p>
+            )}
+            <Input
+              type="number"
+              placeholder={element.placeholder}
+              disabled={!isPreview}
+              required={element.required}
+              min={element.min}
+              max={element.max}
+              defaultValue={element.defaultValue}
+              className="w-full"
+            />
+          </div>
         )
+      
       case "date":
         return (
-          <Input
-            type="date"
-            disabled={!isPreview}
-            required={element.required}
-            name={element.id}
-          />
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {element.label}
+              {element.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            {element.description && (
+              <p className="text-xs text-gray-500">{element.description}</p>
+            )}
+            <Input
+              type="date"
+              disabled={!isPreview}
+              required={element.required}
+              defaultValue={element.defaultValue}
+              className="w-full"
+            />
+          </div>
         )
+      
       case "textarea":
         return (
-          <Textarea
-            placeholder={element.placeholder || `Enter ${element.label.toLowerCase()}`}
-            disabled={!isPreview}
-            required={element.required}
-            name={element.id}
-          />
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {element.label}
+              {element.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            {element.description && (
+              <p className="text-xs text-gray-500">{element.description}</p>
+            )}
+            <Textarea
+              placeholder={element.placeholder}
+              disabled={!isPreview}
+              required={element.required}
+              defaultValue={element.defaultValue}
+              className="w-full min-h-[100px]"
+            />
+          </div>
         )
+      
       case "select":
         return (
-          <Select disabled={!isPreview} name={element.id} required={element.required}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select an option" />
-            </SelectTrigger>
-            <SelectContent>
-              {element.options?.map((option, index) => (
-                <SelectItem key={index} value={option}>
-                  {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {element.label}
+              {element.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            {element.description && (
+              <p className="text-xs text-gray-500">{element.description}</p>
+            )}
+            <Select disabled={!isPreview}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select an option" />
+              </SelectTrigger>
+              <SelectContent>
+                {element.options?.map((option, index) => (
+                  <SelectItem key={index} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )
+      
       case "radio":
         return (
-          <RadioGroup disabled={!isPreview} name={element.id} required={element.required}>
-            {element.options?.map((option, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem value={option} id={`${element.id}-${index}`} />
-                <Label htmlFor={`${element.id}-${index}`}>{option}</Label>
-              </div>
-            ))}
-          </RadioGroup>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {element.label}
+              {element.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            {element.description && (
+              <p className="text-xs text-gray-500">{element.description}</p>
+            )}
+            <RadioGroup disabled={!isPreview} className="space-y-2">
+              {element.options?.map((option, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  <RadioGroupItem value={option} id={`${element.id}-${index}`} />
+                  <Label htmlFor={`${element.id}-${index}`} className="text-sm">{option}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
         )
+      
       case "checkbox":
         return (
           <div className="flex items-center space-x-2">
             <input
               type="checkbox"
-              name={element.id}
-              value="true"
               disabled={!isPreview}
               required={element.required}
-              className="h-4 w-4"
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
             />
-            <label className="text-sm">{element.label}</label>
+            <Label className="text-sm">
+              {element.label}
+              {element.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
           </div>
         )
+      
       case "heading":
         return (
-          <h2 className="text-xl font-semibold text-gray-900">
-            {element.content || element.label}
-          </h2>
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold text-gray-900">
+              {element.content || element.label}
+            </h2>
+          </div>
         )
+      
       case "paragraph":
         return (
-          <p className="text-gray-600">
-            {element.content || element.label}
-          </p>
+          <div className="space-y-2">
+            <p className="text-gray-600">
+              {element.content || element.label}
+            </p>
+          </div>
         )
+      
+      case "rating":
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {element.label}
+              {element.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            {element.description && (
+              <p className="text-xs text-gray-500">{element.description}</p>
+            )}
+            <div className="flex space-x-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star key={star} className="h-6 w-6 text-gray-300 hover:text-yellow-400 cursor-pointer" />
+              ))}
+            </div>
+          </div>
+        )
+      
+      case "file":
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              {element.label}
+              {element.required && <span className="text-red-500 ml-1">*</span>}
+            </Label>
+            {element.description && (
+              <p className="text-xs text-gray-500">{element.description}</p>
+            )}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
+              <Plus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+            </div>
+          </div>
+        )
+      
       default:
         return null
     }
   }
 
   return (
-    <>
-      <div
-        className={cn(
-          "group relative p-4 border rounded-lg transition-all duration-200",
-          isPreview 
-            ? "border-gray-200 bg-white" 
-            : "hover:border-blue-300 hover:shadow-md bg-gray-50 hover:bg-white",
-          "w-full" // Remove width class application here since we handle it in DropZone
-        )}
-      >
-        {!isPreview && (
-          <>
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-              <div className="flex gap-1 bg-white rounded-md shadow-sm border p-1">
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={() => setSettingsOpen(true)}
-                  className="h-6 w-6 p-0 hover:bg-blue-50"
-                >
-                  <Settings className="h-3 w-3 text-blue-600" />
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  onClick={() => onDelete(element.id)}
-                  className="h-6 w-6 p-0 hover:bg-red-50"
-                >
-                  <Trash2 className="h-3 w-3 text-red-600" />
-                </Button>
-              </div>
+    <div
+      className={cn(
+        "relative p-4 rounded-lg transition-all duration-200 cursor-pointer group",
+        isSelected ? "bg-blue-50 border-2 border-blue-400" : "bg-white border border-gray-200 hover:border-gray-300",
+        !isPreview && "hover:shadow-sm"
+      )}
+      onClick={() => !isPreview && onSelect(element)}
+    >
+      {!isPreview && (
+        <>
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(element.id)
+                }}
+                className="h-6 w-6 p-0 hover:bg-red-50"
+              >
+                <Trash2 className="h-3 w-3 text-red-600" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  // Copy element logic here
+                }}
+                className="h-6 w-6 p-0 hover:bg-gray-50"
+              >
+                <Copy className="h-3 w-3 text-gray-600" />
+              </Button>
             </div>
-
-            <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Badge variant="secondary" className="text-xs">
-                {element.type}
-                {element.width === "w-1/2" && " • Half Width"}
-              </Badge>
-            </div>
-          </>
-        )}
-
-        <div className="space-y-2 mt-6">
-          {element.type !== "checkbox" && element.type !== "heading" && element.type !== "paragraph" && (
-            <Label className="text-sm font-medium">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-          )}
-          {renderElement()}
-        </div>
+          </div>
+          
+          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Badge variant="secondary" className="text-xs">
+              <ElementIcon type={element.type} className="h-3 w-3 mr-1" />
+              {element.type}
+            </Badge>
+          </div>
+        </>
+      )}
+      
+      <div className={cn("w-full", !isPreview && "mt-6")}>
+        {renderElement()}
       </div>
-
-      <ElementSettingsDialog
-        element={element}
-        onUpdate={handleUpdateElement}
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-      />
-    </>
+    </div>
   )
 }
 
@@ -462,11 +401,15 @@ function DropZone({
   onDrop,
   onUpdate,
   onDelete,
+  onSelectElement,
+  selectedElement
 }: {
   elements: FormElement[]
   onDrop: (item: { type: string }) => void
   onUpdate: (id: string, updates: Partial<FormElement>) => void
   onDelete: (id: string) => void
+  onSelectElement: (element: FormElement | null) => void
+  selectedElement: FormElement | null
 }) {
   const [{ isOver }, drop] = useDrop(() => ({
     accept: "element",
@@ -480,127 +423,229 @@ function DropZone({
     <div
       ref={drop}
       className={cn(
-        "min-h-96 p-6 border-2 border-dashed rounded-lg transition-all duration-200",
-        isOver ? "border-blue-400 bg-blue-50 shadow-lg" : "border-gray-300",
-        "relative"
+        "min-h-[600px] p-6 rounded-lg transition-all duration-200",
+        isOver ? "bg-blue-50 border-2 border-dashed border-blue-400" : "bg-gray-50 border border-gray-200"
       )}
     >
-      {isOver && (
-        <div className="absolute inset-0 bg-blue-100 bg-opacity-50 flex items-center justify-center rounded-lg pointer-events-none">
-          <div className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium">
-            Drop element here
-          </div>
-        </div>
-      )}
-
       {elements.length === 0 ? (
-        <div className="text-center text-gray-500 py-12">
-          <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-            <Plus className="h-8 w-8 text-gray-400" />
-          </div>
-          <p className="text-lg mb-2 font-medium">Start building your form</p>
-          <p className="text-sm">Drag elements from the sidebar to create your form</p>
+        <div className="text-center py-16">
+          <Layers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-600 mb-2">Start building your form</h3>
+          <p className="text-sm text-gray-500">Drag elements from the sidebar to add them to your form</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {elements.map((element, index) => {
-            // Skip elements already rendered as pairs
-            if (element.width === "w-1/2" && index > 0 && elements[index - 1]?.width === "w-1/2") {
-              return null;
-            }
-            
-            // Check if this half-width element should be paired with the next
-            if (element.width === "w-1/2" && elements[index + 1]?.width === "w-1/2") {
-              return (
-                <div key={`pair-${element.id}`} className="grid grid-cols-2 gap-4">
-                  <FormElementRenderer 
-                    element={element} 
-                    onUpdate={onUpdate} 
-                    onDelete={onDelete} 
-                  />
-                  <FormElementRenderer 
-                    element={elements[index + 1]} 
-                    onUpdate={onUpdate} 
-                    onDelete={onDelete} 
-                  />
-                </div>
-              );
-            }
-            
-            // Render single element (full width or unpaired half width)
-            return (
-              <div key={element.id} className={element.width === "w-1/2" ? "w-1/2" : "w-full"}>
-                <FormElementRenderer 
-                  element={element} 
-                  onUpdate={onUpdate} 
-                  onDelete={onDelete} 
-                />
-              </div>
-            );
-          })}
+          {elements.map((element) => (
+            <FormElementRenderer
+              key={element.id}
+              element={element}
+              onUpdate={onUpdate}
+              onDelete={onDelete}
+              onSelect={onSelectElement}
+              isSelected={selectedElement?.id === element.id}
+            />
+          ))}
         </div>
       )}
     </div>
   )
 }
 
-function FormPreview({ formConfig }: { formConfig: FormConfig }) {
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    alert("This is a preview - form submission is disabled")
+function ElementPropertiesPanel({ 
+  element, 
+  onUpdate, 
+  onClose 
+}: { 
+  element: FormElement | null
+  onUpdate: (id: string, updates: Partial<FormElement>) => void
+  onClose: () => void
+}) {
+  if (!element) {
+    return (
+      <div className="p-6 text-center text-gray-500">
+        <Settings className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+        <p>Select an element to edit its properties</p>
+      </div>
+    )
+  }
+
+  const [label, setLabel] = useState(element.label)
+  const [placeholder, setPlaceholder] = useState(element.placeholder || "")
+  const [required, setRequired] = useState(element.required || false)
+  const [description, setDescription] = useState(element.description || "")
+  const [options, setOptions] = useState(element.options || [])
+  const [newOption, setNewOption] = useState("")
+
+  const hasOptions = ["select", "radio"].includes(element.type)
+
+  const updateElement = (updates: Partial<FormElement>) => {
+    onUpdate(element.id, updates)
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg border">
-      <h3 className="text-xl font-semibold mb-2">{formConfig.title}</h3>
-      {formConfig.subtitle && (
-        <p className="text-gray-600 mb-4">{formConfig.subtitle}</p>
-      )}
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {formConfig.elements.map((element, index) => {
-          // Skip elements already rendered as pairs
-          if (element.width === "w-1/2" && index > 0 && formConfig.elements[index - 1]?.width === "w-1/2") {
-            return null;
-          }
-          
-          // Check if this half-width element should be paired with the next
-          if (element.width === "w-1/2" && formConfig.elements[index + 1]?.width === "w-1/2") {
-            return (
-              <div key={`preview-pair-${element.id}`} className="grid grid-cols-2 gap-4">
-                <FormElementRenderer
-                  element={element}
-                  onUpdate={() => {}}
-                  onDelete={() => {}}
-                  isPreview={true}
-                />
-                <FormElementRenderer
-                  element={formConfig.elements[index + 1]}
-                  onUpdate={() => {}}
-                  onDelete={() => {}}
-                  isPreview={true}
-                />
-              </div>
-            );
-          }
-          
-          // Render single element
-          return (
-            <div key={element.id} className={element.width === "w-1/2" ? "w-1/2" : "w-full"}>
-              <FormElementRenderer
-                element={element}
-                onUpdate={() => {}}
-                onDelete={() => {}}
-                isPreview={true}
+    <div className="h-full flex flex-col">
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ElementIcon type={element.type} className="h-4 w-4" />
+            <h3 className="font-medium">{element.type.charAt(0).toUpperCase() + element.type.slice(1)} Field</h3>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <Tabs defaultValue="options" className="w-full">
+          <TabsList className="grid w-full grid-cols-3 mx-4 mt-4">
+            <TabsTrigger value="options">Options</TabsTrigger>
+            <TabsTrigger value="logic">Logic</TabsTrigger>
+            <TabsTrigger value="validation">Validation</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="options" className="p-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="field-name">Field Name</Label>
+              <Input
+                id="field-name"
+                value={label}
+                onChange={(e) => {
+                  setLabel(e.target.value)
+                  updateElement({ label: e.target.value })
+                }}
+                placeholder="Enter field name"
               />
             </div>
-          );
-        })}
-        {formConfig.elements.length > 0 && (
-          <Button type="submit" className="w-full mt-4">
-            {formConfig.buttonText || "Submit Form"}
-          </Button>
-        )}
-      </form>
+
+            {element.type !== "checkbox" && element.type !== "heading" && element.type !== "paragraph" && (
+              <div className="space-y-2">
+                <Label htmlFor="placeholder">Placeholder</Label>
+                <Input
+                  id="placeholder"
+                  value={placeholder}
+                  onChange={(e) => {
+                    setPlaceholder(e.target.value)
+                    updateElement({ placeholder: e.target.value })
+                  }}
+                  placeholder="Enter placeholder text"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value)
+                  updateElement({ description: e.target.value })
+                }}
+                placeholder="Enter help text"
+                rows={2}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="required"
+                checked={required}
+                onCheckedChange={(checked) => {
+                  setRequired(checked)
+                  updateElement({ required: checked })
+                }}
+              />
+              <Label htmlFor="required">Required field</Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Block Width</Label>
+              <Select
+                value={element.width || "w-full"}
+                onValueChange={(value) => updateElement({ width: value as any })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="w-full">Full Width</SelectItem>
+                  <SelectItem value="w-1/2">Half Width</SelectItem>
+                  <SelectItem value="w-1/3">One Third</SelectItem>
+                  <SelectItem value="w-2/3">Two Thirds</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hasOptions && (
+              <div className="space-y-2">
+                <Label>Options</Label>
+                <div className="space-y-2">
+                  {options.map((option, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Input value={option} readOnly className="flex-1" />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newOptions = options.filter((_, i) => i !== index)
+                          setOptions(newOptions)
+                          updateElement({ options: newOptions })
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={newOption}
+                      onChange={(e) => setNewOption(e.target.value)}
+                      placeholder="Add new option"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter" && newOption.trim()) {
+                          const newOptions = [...options, newOption.trim()]
+                          setOptions(newOptions)
+                          updateElement({ options: newOptions })
+                          setNewOption("")
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (newOption.trim()) {
+                          const newOptions = [...options, newOption.trim()]
+                          setOptions(newOptions)
+                          updateElement({ options: newOptions })
+                          setNewOption("")
+                        }
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="logic" className="p-4 space-y-4">
+            <div className="text-center py-8 text-gray-500">
+              <HelpCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm">Logic rules coming soon</p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="validation" className="p-4 space-y-4">
+            <div className="text-center py-8 text-gray-500">
+              <HelpCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm">Validation rules coming soon</p>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }
@@ -616,7 +661,8 @@ export default function FormBuilder() {
     isActive: true,
     buttonText: "Submit Form"
   })
-  const [showPreview, setShowPreview] = useState(false)
+  const [selectedElement, setSelectedElement] = useState<FormElement | null>(null)
+  const [activeTab, setActiveTab] = useState("build")
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const router = useRouter()
@@ -631,7 +677,6 @@ export default function FormBuilder() {
       setIsEditing(true)
       loadForm(formId)
     } else if (titleParam) {
-      // Set title from URL parameter for new forms
       setFormConfig(prev => ({
         ...prev,
         title: decodeURIComponent(titleParam)
@@ -650,8 +695,7 @@ export default function FormBuilder() {
           elements: form.elements,
           submissionType: form.submissionType || "message",
           redirectUrl: form.redirectUrl || "",
-          successMessageHtml:
-            form.successMessageHtml || "<h3>Thank you for your submission!</h3><p>We have received your response.</p>",
+          successMessageHtml: form.successMessageHtml || "<h3>Thank you for your submission!</h3><p>We have received your response.</p>",
           isActive: form.isActive !== undefined ? form.isActive : true,
         })
       }
@@ -666,15 +710,18 @@ export default function FormBuilder() {
       type: item.type,
       label: `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} Field`,
       required: false,
-      width: "w-full", // Default to full width
+      width: "w-full",
       ...(item.type === "select" || item.type === "radio" ? { options: ["Option 1", "Option 2", "Option 3"] } : {}),
-      ...(item.type === "checkbox" ? { label: "Check this box" } : {}), // Default label for checkbox
+      ...(item.type === "checkbox" ? { label: "Check this box" } : {}),
     }
 
     setFormConfig((prev) => ({
       ...prev,
       elements: [...prev.elements, newElement],
     }))
+
+    // Auto-select the new element
+    setSelectedElement(newElement)
   }, [])
 
   const handleUpdateElement = useCallback((id: string, updates: Partial<FormElement>) => {
@@ -682,14 +729,24 @@ export default function FormBuilder() {
       ...prev,
       elements: prev.elements.map((el) => (el.id === id ? { ...el, ...updates } : el)),
     }))
-  }, [])
+    
+    // Update selected element if it's the one being updated
+    if (selectedElement?.id === id) {
+      setSelectedElement(prev => prev ? { ...prev, ...updates } : null)
+    }
+  }, [selectedElement])
 
   const handleDeleteElement = useCallback((id: string) => {
     setFormConfig((prev) => ({
       ...prev,
       elements: prev.elements.filter((el) => el.id !== id),
     }))
-  }, [])
+    
+    // Clear selection if deleted element was selected
+    if (selectedElement?.id === id) {
+      setSelectedElement(null)
+    }
+  }, [selectedElement])
 
   const handleSaveForm = async () => {
     if (!formConfig.title.trim()) {
@@ -699,16 +756,6 @@ export default function FormBuilder() {
 
     if (formConfig.elements.length === 0) {
       toast.error("Please add at least one form element")
-      return
-    }
-
-    if (formConfig.submissionType === "redirect" && !formConfig.redirectUrl?.trim()) {
-      toast.error("Please enter a redirect URL")
-      return
-    }
-
-    if (formConfig.submissionType === "message" && !formConfig.successMessageHtml?.trim()) {
-      toast.error("Please enter a success message HTML")
       return
     }
 
@@ -738,7 +785,6 @@ export default function FormBuilder() {
         const result = await response.json()
         
         if (isEditing) {
-          // Update existing form in context
           updateForm(formConfig.id!, {
             title: formData.title,
             description: formData.description,
@@ -748,7 +794,6 @@ export default function FormBuilder() {
           })
           toast.success("Form updated successfully!")
         } else {
-          // Add new form to context
           const newForm = {
             _id: result._id || result.formId,
             title: formData.title,
@@ -777,154 +822,153 @@ export default function FormBuilder() {
     }
   }
 
+  const groupedElements = ELEMENT_TYPES.reduce((acc, element) => {
+    if (!acc[element.category]) {
+      acc[element.category] = []
+    }
+    acc[element.category].push(element)
+    return acc
+  }, {} as Record<string, typeof ELEMENT_TYPES>)
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className="min-h-screen bg-gray-50">
-        <div className="border-b bg-white px-6 py-4">
-          <div className="flex items-center justify-between">
+        {/* Top Navigation */}
+        <div className="bg-white border-b">
+          <div className="flex items-center justify-between px-6 py-3">
             <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => router.push("/forms")}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="build" className="flex items-center gap-2">
+                    <Layers className="h-4 w-4" />
+                    Build
+                  </TabsTrigger>
+                  <TabsTrigger value="design" className="flex items-center gap-2">
+                    <Palette className="h-4 w-4" />
+                    Design
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <Button variant="ghost" size="sm">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+            </div>
+
+            <div className="flex-1 max-w-md mx-8">
               <Input
                 value={formConfig.title}
                 onChange={(e) => setFormConfig((prev) => ({ ...prev, title: e.target.value }))}
-                className="text-lg font-semibold border-none shadow-none p-0 h-auto bg-transparent"
-                placeholder="Enter form title"
+                className="text-center font-medium border-none shadow-none text-lg"
+                placeholder="My Form"
               />
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="form-active"
-                  checked={formConfig.isActive}
-                  onCheckedChange={(checked) => setFormConfig((prev) => ({ ...prev, isActive: checked }))}
-                />
-                <Label htmlFor="form-active">{formConfig.isActive ? "Active" : "Inactive"}</Label>
-              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
+
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm">
                 <Eye className="h-4 w-4 mr-2" />
-                {showPreview ? "Hide Preview" : "Show Preview"}
+                Preview
               </Button>
               <Button onClick={handleSaveForm} size="sm" disabled={loading}>
-                <Save className="h-4 w-4 mr-2" />
-                {loading ? "Saving..." : isEditing ? "Update Form" : "Save Form"}
+                {loading ? "Publishing..." : "Publish Form"}
               </Button>
             </div>
           </div>
         </div>
 
-        <div className="flex">
-          <div className="w-80 bg-white border-r p-6">
-            <h3 className="font-semibold mb-4">Form Elements</h3>
-            <div className="space-y-3">
-              {ELEMENT_TYPES.map((elementType) => (
-                <DraggableElement
-                  key={elementType.type}
-                  type={elementType.type}
-                  label={elementType.label}
-                  icon={elementType.icon}
-                />
-              ))}
-            </div>
-            <div className="mt-8">
-              <h3 className="font-semibold mb-4">Form Settings</h3>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="subtitle">Form Subtitle</Label>
-                  <Input
-                    id="subtitle"
-                    value={formConfig.subtitle || ""}
-                    onChange={(e) => setFormConfig((prev) => ({ ...prev, subtitle: e.target.value }))}
-                    placeholder="Enter form subtitle"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="buttonText">Submit Button Text</Label>
-                  <Input
-                    id="buttonText"
-                    value={formConfig.buttonText || ""}
-                    onChange={(e) => setFormConfig((prev) => ({ ...prev, buttonText: e.target.value }))}
-                    placeholder="Submit Form"
-                  />
-                </div>
+        <div className="flex h-[calc(100vh-73px)]">
+          {/* Left Sidebar - Elements */}
+          <div className="w-80 bg-white border-r overflow-y-auto">
+            <div className="p-4">
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-900 mb-2">Add Block</h3>
+                <p className="text-sm text-gray-500">Drag elements to your form</p>
               </div>
-            </div>
 
-            <div className="mt-8">
-              <h3 className="font-semibold mb-4">Submission Settings</h3>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="submissionType">After Submission</Label>
-                  <Select
-                    value={formConfig.submissionType}
-                    onValueChange={(value: "message" | "redirect") =>
-                      setFormConfig((prev) => ({ ...prev, submissionType: value }))
-                    }
-                  >
-                    <SelectTrigger id="submissionType">
-                      <SelectValue placeholder="Select action" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="message">Show Success Message</SelectItem>
-                      <SelectItem value="redirect">Redirect to URL</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {formConfig.submissionType === "redirect" && (
-                  <div>
-                    <Label htmlFor="redirectUrl">Redirect URL</Label>
-                    <Input
-                      id="redirectUrl"
-                      value={formConfig.redirectUrl || ""}
-                      onChange={(e) => setFormConfig((prev) => ({ ...prev, redirectUrl: e.target.value }))}
-                      placeholder="https://yourwebsite.com/thank-you"
-                    />
+              <div className="space-y-6">
+                {Object.entries(groupedElements).map(([category, elements]) => (
+                  <div key={category}>
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">{category}</h4>
+                    <div className="space-y-2">
+                      {elements.map((elementType) => (
+                        <DraggableElement
+                          key={elementType.type}
+                          type={elementType.type}
+                          label={elementType.label}
+                          icon={elementType.icon}
+                        />
+                      ))}
+                    </div>
                   </div>
-                )}
-
-                {formConfig.submissionType === "message" && (
-                  <div>
-                    <Label htmlFor="successMessageHtml">Success Message (HTML)</Label>
-                    <Textarea
-                      id="successMessageHtml"
-                      value={formConfig.successMessageHtml || ""}
-                      onChange={(e) => setFormConfig((prev) => ({ ...prev, successMessageHtml: e.target.value }))}
-                      placeholder="<h3>Thank you!</h3><p>Your submission was received.</p>"
-                      rows={5}
-                    />
-                  </div>
-                )}
+                ))}
               </div>
             </div>
           </div>
 
-          <div className="flex-1 p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Form Builder</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DropZone
-                    elements={formConfig.elements}
-                    onDrop={handleDrop}
-                    onUpdate={handleUpdateElement}
-                    onDelete={handleDeleteElement}
-                  />
-                </CardContent>
-              </Card>
+          {/* Center - Form Preview */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-6">
+              <div className="max-w-2xl mx-auto">
+                <div className="bg-white rounded-lg shadow-sm border">
+                  <div className="p-6 border-b">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                        </div>
+                        <span className="text-sm text-gray-500 ml-4">Form Preview</span>
+                      </div>
+                      <Button variant="ghost" size="sm">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="text-center mb-6">
+                      <h1 className="text-2xl font-bold text-gray-900 mb-2">{formConfig.title}</h1>
+                      {formConfig.subtitle && (
+                        <p className="text-gray-600">{formConfig.subtitle}</p>
+                      )}
+                    </div>
+                  </div>
 
-              {showPreview && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Live Preview</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <FormPreview formConfig={formConfig} />
-                  </CardContent>
-                </Card>
-              )}
+                  <div className="p-6">
+                    <DropZone
+                      elements={formConfig.elements}
+                      onDrop={handleDrop}
+                      onUpdate={handleUpdateElement}
+                      onDelete={handleDeleteElement}
+                      onSelectElement={setSelectedElement}
+                      selectedElement={selectedElement}
+                    />
+                    
+                    {formConfig.elements.length > 0 && (
+                      <div className="mt-8 text-center">
+                        <Button className="w-full max-w-xs">
+                          {formConfig.buttonText || "Submit"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Right Sidebar - Element Properties */}
+          <div className="w-80 bg-white border-l">
+            <ElementPropertiesPanel
+              element={selectedElement}
+              onUpdate={handleUpdateElement}
+              onClose={() => setSelectedElement(null)}
+            />
           </div>
         </div>
       </div>

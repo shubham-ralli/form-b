@@ -54,13 +54,12 @@ export default function LiveFormPage() {
       const response = await fetch(`/api/forms/public?id=${formId}`)
       if (response.ok) {
         const data = await response.json()
-        const formData = Array.isArray(data) ? data.find(f => f.id === formId) : data
-        if (!formData) {
+        if (!data) {
           setError("Form not found")
-        } else if (!formData.isActive) {
+        } else if (data.isActive === false) {
           setError("This form is currently inactive")
         } else {
-          setForm(formData)
+          setForm(data)
         }
       } else {
         setError("Form not found")
@@ -215,11 +214,25 @@ export default function LiveFormPage() {
   if (!form) return null
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">{form.title}</CardTitle>
-        </CardHeader>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium mb-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              Public Form
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">{form.title}</h1>
+          </div>
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-center">Fill out this form</CardTitle>
+          </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {form.elements.map((element) => (
@@ -239,6 +252,7 @@ export default function LiveFormPage() {
           </form>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

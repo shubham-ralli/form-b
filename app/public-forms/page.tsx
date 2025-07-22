@@ -139,6 +139,24 @@ export default function PublicFormsPage() {
                     </div>
                   </div>
                   
+                  {/* Public URL Display */}
+                  <div className="bg-gray-50 p-3 rounded-lg border">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-gray-600 font-medium">Public URL:</span>
+                      <code className="bg-white px-2 py-1 rounded border text-xs flex-1 min-w-0 truncate">
+                        {window.location.origin}/live/{form.id}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigator.clipboard.writeText(`${window.location.origin}/live/${form.id}`)}
+                        className="h-6 w-6 p-0"
+                      >
+                        📋
+                      </Button>
+                    </div>
+                  </div>
+                  
                   {/* Action Buttons */}
                   <div className="flex gap-2">
                     <Link href={`/live/${form.id}`} className="flex-1">

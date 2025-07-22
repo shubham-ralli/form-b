@@ -1,0 +1,103 @@
+./components/layout/sidebar.tsx
+Error: 
+  × Expression expected
+     ╭─[/home/runner/workspace/components/layout/sidebar.tsx:120:1]
+ 120 │   pathname: string
+ 121 │ }) {
+ 122 │   return (
+ 123 │     <>
+     ·      ─
+ 124 │       {/* Logo */}
+ 125 │       <div className="flex items-center h-16 px-6 border-b border-gray-200">
+ 126 │         <div className="flex items-center">
+     ╰────
+
+  × Expected ',', got '< (jsx tag start)'
+     ╭─[/home/runner/workspace/components/layout/sidebar.tsx:122:1]
+ 122 │   return (
+ 123 │     <>
+ 124 │       {/* Logo */}
+ 125 │       <div className="flex items-center h-16 px-6 border-b border-gray-200">
+     ·       ─
+ 126 │         <div className="flex items-center">
+ 127 │           <div className="flex-shrink-0">
+ 128 │             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/layout/sidebar.tsx
+./components/layout/main-layout.tsx
+ ⨯ ./components/layout/sidebar.tsx
+Error: 
+  × Expression expected
+     ╭─[/home/runner/workspace/components/layout/sidebar.tsx:120:1]
+ 120 │   pathname: string
+ 121 │ }) {
+ 122 │   return (
+ 123 │     <>
+     ·      ─
+ 124 │       {/* Logo */}
+ 125 │       <div className="flex items-center h-16 px-6 border-b border-gray-200">
+ 126 │         <div className="flex items-center">
+     ╰────
+
+  × Expected ',', got '< (jsx tag start)'
+     ╭─[/home/runner/workspace/components/layout/sidebar.tsx:122:1]
+ 122 │   return (
+ 123 │     <>
+ 124 │       {/* Logo */}
+ 125 │       <div className="flex items-center h-16 px-6 border-b border-gray-200">
+     ·       ─
+ 126 │         <div className="flex items-center">
+ 127 │           <div className="flex-shrink-0">
+ 128 │             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/layout/sidebar.tsx
+./components/layout/main-layout.tsx
+ ⨯ ./components/layout/sidebar.tsx
+Error: 
+  × Expression expected
+     ╭─[/home/runner/workspace/components/layout/sidebar.tsx:120:1]
+ 120 │   pathname: string
+ 121 │ }) {
+ 122 │   return (
+ 123 │     <>
+     ·      ─
+ 124 │       {/* Logo */}
+ 125 │       <div className="flex items-center h-16 px-6 border-b border-gray-200">
+ 126 │         <div className="flex items-center">
+     ╰────
+
+  × Expected ',', got '< (jsx tag start)'
+     ╭─[/home/runner/workspace/components/layout/sidebar.tsx:122:1]
+ 122 │   return (
+ 123 │     <>
+ 124 │       {/* Logo */}
+ 125 │       <div className="flex items-center h-16 px-6 border-b border-gray-200">
+     ·       ─
+ 126 │         <div className="flex items-center">
+ 127 │           <div className="flex-shrink-0">
+ 128 │             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./components/layout/sidebar.tsx
+./components/layout/main-layout.tsx
+ GET /live/687f2b4f59fa13cedca63976 500 in 22894ms
+ GET /forms 500 in 22964ms
+ GET / 500 in 22962ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/runner/workspace/.next/cache/webpack/client-development-fallback/0.pack.gz_' -> '/home/runner/workspace/.next/cache/webpack/client-development-fallback/0.pack.gz'
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/home/runner/workspace/.next/cache/webpack/client-development-fallback/0.pack.gz_' -> '/home/runner/workspace/.next/cache/webpack/client-development-fallback/0.pack.gz'
+ GET / 500 in 35ms
+ GET / 500 in 10ms

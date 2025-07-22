@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { storage } from '@/lib/storage'
 
 interface Form {
@@ -31,7 +31,8 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
   const [forms, setForms] = useState<Form[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [lastFetch, setLastFetch] = useState<number>(0)
+  const lastFetchRef = useRef<number>(0)
+  const isInitializedRef = useRef(false)
   
   // Initialize with cached data
   useEffect(() => {
@@ -39,16 +40,20 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
     if (cachedForms) {
       setForms(cachedForms)
       setLoading(false)
+      isInitializedRef.current = true
     }
   }, [])
 
   const fetchForms = useCallback(async (force = false) => {
+    // Prevent multiple simultaneous requests
+    if (loading && !force) return
+    
     // Check cache first and if it's fresh (less than 5 minutes old)
     const cachedForms = storage.getForms()
-    const cacheAge = Date.now() - lastFetch
+    const cacheAge = Date.now() - lastFetchRef.current
     const isCacheFresh = cacheAge < 5 * 60 * 1000 // 5 minutes
     
-    if (!force && cachedForms && cachedForms.length > 0 && isCacheFresh) {
+    if (!force && cachedForms && cachedForms.length > 0 && isCacheFresh && isInitializedRef.current) {
       setForms(cachedForms)
       setLoading(false)
       return
@@ -76,7 +81,8 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
         
         setForms(sortedForms)
         storage.setForms(sortedForms)
-        setLastFetch(Date.now())
+        lastFetchRef.current = Date.now()
+        isInitializedRef.current = true
       } else {
         setError("Failed to fetch forms")
       }
@@ -91,7 +97,7 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [lastFetch])
+  }, [loading]) // Only depend on loading to prevent infinite loops
 
   const refreshForms = useCallback(async () => {
     await fetchForms(true)
@@ -123,10 +129,12 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  // Initial load
+  // Initial load - only run once
   useEffect(() => {
-    fetchForms()
-  }, [fetchForms])
+    if (!isInitializedRef.current) {
+      fetchForms()
+    }
+  }, []) // Empty dependency array to run only once
 
   const value: FormsContextType = {
     forms,

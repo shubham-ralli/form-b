@@ -53,13 +53,17 @@ export default function HomePage() {
         ? Math.round(((thisMonth.length - lastMonth.length) / lastMonth.length) * 100)
         : thisMonth.length > 0 ? 100 : 0
 
+      // Handle both array response and object with forms property
+      const formsArray = Array.isArray(forms) ? forms : (forms.forms || [])
+      const submissionsArray = Array.isArray(submissions) ? submissions : (submissions.submissions || [])
+
       setStats({
-        totalForms: forms.length,
-        totalSubmissions: submissions.length,
+        totalForms: formsArray.length,
+        totalSubmissions: submissionsArray.length,
         activeUsers: 1,
-        recentActivity: submissions.slice(0, 5),
+        recentActivity: submissionsArray.slice(0, 5),
         thisMonthGrowth: growth,
-        responseRate: forms.length > 0 ? Math.round((submissions.length / (forms.length * 10)) * 100) : 0 // Estimate based on average views
+        responseRate: formsArray.length > 0 ? Math.round((submissionsArray.length / (formsArray.length * 10)) * 100) : 0
       })
     } catch (error) {
       console.error("Error fetching dashboard stats:", error)

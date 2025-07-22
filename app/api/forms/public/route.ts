@@ -19,7 +19,16 @@ export async function GET(request: NextRequest) {
     // Get creator names and submission counts
     const formsWithDetails = await Promise.all(
       activeForms.map(async (form) => {
-        const creator = await users.findOne({ _id: new ObjectId(form.createdBy) })
+        let creator = null
+        let createdBy = "Unknown"
+        
+        // Handle both userId and createdBy fields
+        const creatorId = form.userId || form.createdBy
+        if (creatorId) {
+          creator = await users.findOne({ _id: new ObjectId(creatorId) })
+          createdBy = creatorId.toString()
+        }
+        
         const submissionCount = await submissions.countDocuments({ 
           formId: form._id.toString() 
         })
@@ -27,7 +36,7 @@ export async function GET(request: NextRequest) {
         return {
           id: form._id.toString(),
           title: form.title,
-          createdBy: form.createdBy.toString(),
+          createdBy: createdBy,
           creatorName: creator?.name || "Unknown",
           createdAt: form.createdAt,
           submissions: submissionCount,

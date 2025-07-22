@@ -130,18 +130,23 @@ export default function FormsPage() {
     }
   }
 
+  const copyLiveUrl = (formId: string) => {
+    const url = `${window.location.origin}/live/${formId}`
+    navigator.clipboard.writeText(url).then(() => {
+      toast.success("Live URL copied to clipboard!", { duration: 5000 })
+    }).catch(() => {
+      toast.error("Failed to copy URL")
+    })
+  }
+
   const copyEmbedCode = (formId: string) => {
     const embedCode = `<div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
 <script src="${window.location.origin}/embed.js"></script>`
-
-    navigator.clipboard.writeText(embedCode)
-    toast.success("Embed code copied to clipboard!")
-  }
-
-  const copyLiveUrl = (formId: string) => {
-    const liveUrl = `${window.location.origin}/live/${formId}`
-    navigator.clipboard.writeText(liveUrl)
-    toast.success("Live URL copied to clipboard!")
+    navigator.clipboard.writeText(embedCode).then(() => {
+      toast.success("Embed code copied to clipboard!", { duration: 5000 })
+    }).catch(() => {
+      toast.error("Failed to copy embed code")
+    })
   }
 
   if (loading) {

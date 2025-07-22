@@ -34,7 +34,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const forms = db.collection("forms")
-    const userForms = await forms.find({ createdBy: new ObjectId(params.id) }).toArray()
+    const userForms = await forms.find({ userId: new ObjectId(params.id) }).toArray()
 
     // Get submission counts for each form
     const submissions = db.collection("submissions")

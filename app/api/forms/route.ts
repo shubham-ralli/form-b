@@ -69,15 +69,17 @@ export async function POST(request: NextRequest) {
     // Any authenticated user can create forms
     // Admin restriction removed
 
-    // Check form limits for free plan
-    if (user.plan === "free" || !user.plan) {
-      const forms = db.collection("forms")
-      const formsCount = await forms.countDocuments({ userId: new ObjectId(userId) })
-      if (formsCount >= 3) {
-        return NextResponse.json(
-          { error: "Free plan allows maximum 3 forms. Please upgrade to create more forms." },
-          { status: 403 }
-        )
+    // Check form limits for free plan (admin users bypass this limit)
+    if (user.role !== 'admin') {
+      if (user.plan === "free" || !user.plan) {
+        const forms = db.collection("forms")
+        const formsCount = await forms.countDocuments({ userId: new ObjectId(userId) })
+        if (formsCount >= 3) {
+          return NextResponse.json(
+            { error: "Free plan allows maximum 3 forms. Please upgrade to create more forms." },
+            { status: 403 }
+          )
+        }
       }
     }
 

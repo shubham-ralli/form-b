@@ -210,7 +210,7 @@ export default function AdminUsersPage() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => window.location.href = `/admin/users/${user._id}/forms`}
+                        onClick={() => window.location.href = `/admin/users/${user.id}/forms`}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View Forms

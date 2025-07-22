@@ -29,6 +29,7 @@ import {
   Globe,
   DollarSign,
   CreditCard,
+  Users, // Add the missing Users icon import
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 

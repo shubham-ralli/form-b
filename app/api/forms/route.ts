@@ -66,13 +66,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Only admin can create forms
-    if (user.role !== 'admin') {
-      return NextResponse.json(
-        { error: "Only admin users can create forms" },
-        { status: 403 }
-      )
-    }
+    // Any authenticated user can create forms
+    // Admin restriction removed
 
     // Check form limits for free plan
     if (user.plan === "free" || !user.plan) {

@@ -11,27 +11,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Copy, Edit, ExternalLink, Trash2, Plus, Eye, Power, PowerOff, Globe, Code, MoreHorizontal, FileText, Search } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
-
-interface Form {
-  _id: string
-  title: string
-  description: string
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-  submissionCount: number
-  elements?: any[]
-}
+import { useForms } from "@/contexts/FormsContext"
 
 export default function FormsPage() {
-  const [forms, setForms] = useState<Form[]>([])
-  const [filteredForms, setFilteredForms] = useState<Form[]>([])
-  const [loading, setLoading] = useState(true)
+  const { forms, loading, error, refreshForms, updateForm, deleteForm, addForm } = useForms()
+  const [filteredForms, setFilteredForms] = useState(forms)
   const [searchTerm, setSearchTerm] = useState("")
-
-  useEffect(() => {
-    fetchForms()
-  }, [])
 
   useEffect(() => {
     const filtered = forms.filter((form) =>
@@ -40,30 +25,6 @@ export default function FormsPage() {
     )
     setFilteredForms(filtered)
   }, [forms, searchTerm])
-
-  const fetchForms = async () => {
-    try {
-      const response = await fetch("/api/forms")
-      if (response.ok) {
-        const data = await response.json()
-        // Handle both array response and object with forms property
-        const formsData = Array.isArray(data) ? data : (data.forms || [])
-        setForms(formsData)
-        setFilteredForms(formsData)
-      } else {
-        toast.error("Failed to fetch forms")
-        setForms([])
-        setFilteredForms([])
-      }
-    } catch (error) {
-      console.error("Error fetching forms:", error)
-      toast.error("Error fetching forms")
-      setForms([])
-      setFilteredForms([])
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleCreateForm = () => {
     // Redirect directly to builder page
@@ -78,7 +39,7 @@ export default function FormsPage() {
 
       if (response.ok) {
         toast.success("Form deleted successfully")
-        fetchForms()
+        deleteForm(formId) // Update local state immediately
       } else {
         toast.error("Failed to delete form")
       }
@@ -89,6 +50,9 @@ export default function FormsPage() {
   }
 
   const handleToggleFormStatus = async (formId: string, isActive: boolean) => {
+    // Update local state immediately for better UX
+    updateForm(formId, { isActive: !isActive })
+    
     try {
       const response = await fetch(`/api/forms/${formId}/status`, {
         method: "PATCH",
@@ -100,11 +64,14 @@ export default function FormsPage() {
 
       if (response.ok) {
         toast.success(`Form ${!isActive ? "activated" : "deactivated"} successfully`)
-        fetchForms()
       } else {
+        // Revert if failed
+        updateForm(formId, { isActive })
         toast.error("Failed to update form status")
       }
     } catch (error) {
+      // Revert if failed
+      updateForm(formId, { isActive })
       console.error("Error updating form status:", error)
       toast.error("Error updating form status")
     }
@@ -125,32 +92,34 @@ export default function FormsPage() {
 
   const duplicateForm = async (formId: string) => {
     try {
-      // Get form data first
-      const response = await fetch(`/api/forms/${formId}`)
-      if (response.ok) {
-        const formData = await response.json()
-        
-        // Create new form with copied data
-        const newFormData = {
-          title: `${formData.title} (Copy)`,
-          description: formData.description || "",
-          elements: formData.elements || []
-        }
+      // Find form in local state first
+      const originalForm = forms.find(f => f._id === formId)
+      if (!originalForm) {
+        toast.error("Form not found")
+        return
+      }
 
-        const createResponse = await fetch("/api/forms", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(newFormData),
-        })
+      // Create new form with copied data
+      const newFormData = {
+        title: `${originalForm.title} (Copy)`,
+        description: originalForm.description || "",
+        elements: originalForm.elements || []
+      }
 
-        if (createResponse.ok) {
-          toast.success("Form duplicated successfully")
-          fetchForms()
-        } else {
-          toast.error("Failed to duplicate form")
-        }
+      const createResponse = await fetch("/api/forms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newFormData),
+      })
+
+      if (createResponse.ok) {
+        const newForm = await createResponse.json()
+        addForm(newForm) // Add to local state immediately
+        toast.success("Form duplicated successfully")
+      } else {
+        toast.error("Failed to duplicate form")
       }
     } catch (error) {
       console.error("Error duplicating form:", error)

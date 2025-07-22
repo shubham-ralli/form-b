@@ -5,6 +5,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
+import { FormsProvider } from "@/contexts/FormsContext"
 
 interface User {
   id: string
@@ -73,7 +74,11 @@ export function MainLayout({ children }: MainLayoutProps) {
       <Sidebar user={user} />
       <div className="lg:pl-64">
         <main className="py-6">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">{children}</div>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <FormsProvider>
+              {children}
+            </FormsProvider>
+          </div>
         </main>
       </div>
     </div>

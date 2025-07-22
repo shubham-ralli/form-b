@@ -517,362 +517,7 @@ function ElementPropertiesPanel({
             <TabsTrigger value="validation">Validation</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="design" className="p-4 space-y-6">
-            <div className="space-y-6">
-              {/* Basic Appearance */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Palette className="h-4 w-4" />
-                  <h4 className="font-medium">Basic Appearance</h4>
-                </div>
-                
-                <div className="space-y-4">
-                  {/* Form Theme */}
-                  <div className="space-y-2">
-                    <Label>Form Theme</Label>
-                    <Select 
-                      value={formConfig.theme?.style || "simple"}
-                      onValueChange={(value) => setFormConfig(prev => ({
-                        ...prev,
-                        theme: { ...prev.theme, style: value }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select theme" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="simple">Simple (no shadows)</SelectItem>
-                        <SelectItem value="modern">Modern</SelectItem>
-                        <SelectItem value="classic">Classic</SelectItem>
-                        <SelectItem value="minimal">Minimal</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Accent Color */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>Accent Color</Label>
-                      <Button variant="ghost" size="sm" className="text-blue-600">Reset</Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={formConfig.theme?.primaryColor || "#3b82f6"}
-                        onChange={(e) => setFormConfig(prev => ({
-                          ...prev,
-                          theme: { ...prev.theme, primaryColor: e.target.value }
-                        }))}
-                        className="w-12 h-8 rounded border"
-                      />
-                      <span className="text-sm text-gray-600">{formConfig.theme?.primaryColor || "#3b82f6"}</span>
-                    </div>
-                  </div>
-
-                  {/* Color Mode */}
-                  <div className="space-y-2">
-                    <Label>Color Mode</Label>
-                    <div className="flex gap-2">
-                      {[
-                        { value: "system", label: "System", icon: "🖥️" },
-                        { value: "light", label: "Light", icon: "☀️" },
-                        { value: "dark", label: "Dark", icon: "🌙" }
-                      ].map((mode) => (
-                        <Button
-                          key={mode.value}
-                          variant={formConfig.theme?.colorMode === mode.value ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1 flex flex-col items-center gap-1 h-16"
-                          onClick={() => setFormConfig(prev => ({
-                            ...prev,
-                            theme: { ...prev.theme, colorMode: mode.value }
-                          }))}
-                        >
-                          <span className="text-lg">{mode.icon}</span>
-                          <span className="text-xs">{mode.label}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Text & Language */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Type className="h-4 w-4" />
-                  <h4 className="font-medium">Text & Language</h4>
-                </div>
-                
-                <div className="space-y-4">
-                  {/* Font Family */}
-                  <div className="space-y-2">
-                    <Label>Font Family</Label>
-                    <Select 
-                      value={formConfig.theme?.fontFamily || "default"}
-                      onValueChange={(value) => setFormConfig(prev => ({
-                        ...prev,
-                        theme: { ...prev.theme, fontFamily: value }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Default</SelectItem>
-                        <SelectItem value="inter">Inter</SelectItem>
-                        <SelectItem value="roboto">Roboto</SelectItem>
-                        <SelectItem value="arial">Arial</SelectItem>
-                        <SelectItem value="helvetica">Helvetica</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Language */}
-                  <div className="space-y-2">
-                    <Label>Language</Label>
-                    <Select 
-                      value={formConfig.theme?.language || "english"}
-                      onValueChange={(value) => setFormConfig(prev => ({
-                        ...prev,
-                        theme: { ...prev.theme, language: value }
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="spanish">Spanish</SelectItem>
-                        <SelectItem value="french">French</SelectItem>
-                        <SelectItem value="german">German</SelectItem>
-                        <SelectItem value="chinese">Chinese</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Layout Options */}
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="rtl-layout"
-                        checked={formConfig.theme?.rtlLayout || false}
-                        onCheckedChange={(checked) => setFormConfig(prev => ({
-                          ...prev,
-                          theme: { ...prev.theme, rtlLayout: checked }
-                        }))}
-                      />
-                      <Label htmlFor="rtl-layout">Right-to-Left Layout</Label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="uppercase-labels"
-                        checked={formConfig.theme?.uppercaseLabels || false}
-                        onCheckedChange={(checked) => setFormConfig(prev => ({
-                          ...prev,
-                          theme: { ...prev.theme, uppercaseLabels: checked }
-                        }))}
-                      />
-                      <Label htmlFor="uppercase-labels">Uppercase Input Labels</Label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Layout & Sizing */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Layers className="h-4 w-4" />
-                  <h4 className="font-medium">Layout & Sizing</h4>
-                </div>
-                
-                <div className="space-y-4">
-                  {/* Input Size */}
-                  <div className="space-y-2">
-                    <Label>Input Size</Label>
-                    <div className="flex gap-2">
-                      {["S", "M", "L"].map((size) => (
-                        <Button
-                          key={size}
-                          variant={formConfig.theme?.inputSize === size ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => setFormConfig(prev => ({
-                            ...prev,
-                            theme: { ...prev.theme, inputSize: size }
-                          }))}
-                        >
-                          {size}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Input Roundness */}
-                  <div className="space-y-2">
-                    <Label>Input Roundness</Label>
-                    <div className="flex gap-2">
-                      {[
-                        { value: "none", label: "□", title: "Square" },
-                        { value: "small", label: "⬜", title: "Small" },
-                        { value: "medium", label: "▢", title: "Medium" },
-                        { value: "large", label: "◯", title: "Round" }
-                      ].map((roundness) => (
-                        <Button
-                          key={roundness.value}
-                          variant={formConfig.theme?.inputRoundness === roundness.value ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1"
-                          title={roundness.title}
-                          onClick={() => setFormConfig(prev => ({
-                            ...prev,
-                            theme: { ...prev.theme, inputRoundness: roundness.value }
-                          }))}
-                        >
-                          {roundness.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Form Width */}
-                  <div className="space-y-2">
-                    <Label>Form Width</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={formConfig.theme?.formWidth === "centered" ? "default" : "outline"}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setFormConfig(prev => ({
-                          ...prev,
-                          theme: { ...prev.theme, formWidth: "centered" }
-                        }))}
-                      >
-                        Centered
-                      </Button>
-                      <Button
-                        variant={formConfig.theme?.formWidth === "full" ? "default" : "outline"}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => setFormConfig(prev => ({
-                          ...prev,
-                          theme: { ...prev.theme, formWidth: "full" }
-                        }))}
-                      >
-                        Full Width
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Branding & Media */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Settings className="h-4 w-4" />
-                  <h4 className="font-medium">Branding & Media</h4>
-                </div>
-                
-                <div className="space-y-4">
-                  {/* Logo */}
-                  <div className="space-y-2">
-                    <Label>Logo</Label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-                      <div className="text-gray-400 mb-2">📁</div>
-                      <Button variant="outline" size="sm">Upload</Button>
-                      <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 2MB</p>
-                    </div>
-                  </div>
-
-                  {/* Cover Image */}
-                  <div className="space-y-2">
-                    <Label>Cover (~1500px)</Label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
-                      <div className="text-gray-400 mb-2">🖼️</div>
-                      <Button variant="outline" size="sm">Upload</Button>
-                      <p className="text-xs text-gray-500 mt-2">Recommended: 1500px width</p>
-                    </div>
-                  </div>
-
-                  {/* Hide OpnForm Branding */}
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="hide-branding"
-                      checked={formConfig.theme?.hideBranding || false}
-                      onCheckedChange={(checked) => setFormConfig(prev => ({
-                        ...prev,
-                        theme: { ...prev.theme, hideBranding: checked }
-                      }))}
-                    />
-                    <Label htmlFor="hide-branding" className="flex items-center gap-2">
-                      Hide FormCraft Branding
-                      <Badge variant="secondary" className="text-xs">PRO</Badge>
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Advanced Options */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <Settings className="h-4 w-4" />
-                  <h4 className="font-medium">Advanced Options</h4>
-                </div>
-                
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="progress-bar"
-                      checked={formConfig.theme?.showProgressBar || false}
-                      onCheckedChange={(checked) => setFormConfig(prev => ({
-                        ...prev,
-                        theme: { ...prev.theme, showProgressBar: checked }
-                      }))}
-                    />
-                    <Label htmlFor="progress-bar">Show progress bar</Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="transparent-bg"
-                      checked={formConfig.theme?.transparentBackground || false}
-                      onCheckedChange={(checked) => setFormConfig(prev => ({
-                        ...prev,
-                        theme: { ...prev.theme, transparentBackground: checked }
-                      }))}
-                    />
-                    <Label htmlFor="transparent-bg">Transparent Background</Label>
-                    <p className="text-xs text-gray-500">When form is embedded</p>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="confetti-success"
-                      checked={formConfig.theme?.confettiOnSuccess || false}
-                      onCheckedChange={(checked) => setFormConfig(prev => ({
-                        ...prev,
-                        theme: { ...prev.theme, confettiOnSuccess: checked }
-                      }))}
-                    />
-                    <Label htmlFor="confetti-success">Confetti on successful submission</Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="auto-focus"
-                      checked={formConfig.theme?.autoFocusFirst || false}
-                      onCheckedChange={(checked) => setFormConfig(prev => ({
-                        ...prev,
-                        theme: { ...prev.theme, autoFocusFirst: checked }
-                      }))}
-                    />
-                    <Label htmlFor="auto-focus">Auto focus first input on page</Label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
+          
 
           <TabsContent value="options" className="p-4 space-y-4">
             <div className="space-y-2">
@@ -1349,13 +994,376 @@ export default function FormBuilder() {
             </div>
           </div>
 
-          {/* Right Sidebar - Element Properties */}
+          {/* Right Sidebar - Element Properties or Design */}
           <div className="w-80 bg-white border-l">
-            <ElementPropertiesPanel
-              element={selectedElement}
-              onUpdate={handleUpdateElement}
-              onClose={() => setSelectedElement(null)}
-            />
+            {activeTab === "build" && (
+              <ElementPropertiesPanel
+                element={selectedElement}
+                onUpdate={handleUpdateElement}
+                onClose={() => setSelectedElement(null)}
+              />
+            )}
+            {activeTab === "design" && (
+              <div className="h-full flex flex-col">
+                <div className="p-4 border-b">
+                  <h3 className="font-medium">Design Settings</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                  {/* Basic Appearance */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Palette className="h-4 w-4" />
+                      <h4 className="font-medium">Basic Appearance</h4>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {/* Form Theme */}
+                      <div className="space-y-2">
+                        <Label>Form Theme</Label>
+                        <Select 
+                          value={formConfig.theme?.style || "simple"}
+                          onValueChange={(value) => setFormConfig(prev => ({
+                            ...prev,
+                            theme: { ...prev.theme, style: value }
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select theme" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="simple">Simple (no shadows)</SelectItem>
+                            <SelectItem value="modern">Modern</SelectItem>
+                            <SelectItem value="classic">Classic</SelectItem>
+                            <SelectItem value="minimal">Minimal</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Accent Color */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label>Accent Color</Label>
+                          <Button variant="ghost" size="sm" className="text-blue-600">Reset</Button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={formConfig.theme?.primaryColor || "#3b82f6"}
+                            onChange={(e) => setFormConfig(prev => ({
+                              ...prev,
+                              theme: { ...prev.theme, primaryColor: e.target.value }
+                            }))}
+                            className="w-12 h-8 rounded border"
+                          />
+                          <span className="text-sm text-gray-600">{formConfig.theme?.primaryColor || "#3b82f6"}</span>
+                        </div>
+                      </div>
+
+                      {/* Color Mode */}
+                      <div className="space-y-2">
+                        <Label>Color Mode</Label>
+                        <div className="flex gap-2">
+                          {[
+                            { value: "system", label: "System", icon: "🖥️" },
+                            { value: "light", label: "Light", icon: "☀️" },
+                            { value: "dark", label: "Dark", icon: "🌙" }
+                          ].map((mode) => (
+                            <Button
+                              key={mode.value}
+                              variant={formConfig.theme?.colorMode === mode.value ? "default" : "outline"}
+                              size="sm"
+                              className="flex-1 flex flex-col items-center gap-1 h-16"
+                              onClick={() => setFormConfig(prev => ({
+                                ...prev,
+                                theme: { ...prev.theme, colorMode: mode.value }
+                              }))}
+                            >
+                              <span className="text-lg">{mode.icon}</span>
+                              <span className="text-xs">{mode.label}</span>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Text & Language */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Type className="h-4 w-4" />
+                      <h4 className="font-medium">Text & Language</h4>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {/* Font Family */}
+                      <div className="space-y-2">
+                        <Label>Font Family</Label>
+                        <Select 
+                          value={formConfig.theme?.fontFamily || "default"}
+                          onValueChange={(value) => setFormConfig(prev => ({
+                            ...prev,
+                            theme: { ...prev.theme, fontFamily: value }
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Default</SelectItem>
+                            <SelectItem value="inter">Inter</SelectItem>
+                            <SelectItem value="roboto">Roboto</SelectItem>
+                            <SelectItem value="arial">Arial</SelectItem>
+                            <SelectItem value="helvetica">Helvetica</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Language */}
+                      <div className="space-y-2">
+                        <Label>Language</Label>
+                        <Select 
+                          value={formConfig.theme?.language || "english"}
+                          onValueChange={(value) => setFormConfig(prev => ({
+                            ...prev,
+                            theme: { ...prev.theme, language: value }
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="english">English</SelectItem>
+                            <SelectItem value="spanish">Spanish</SelectItem>
+                            <SelectItem value="french">French</SelectItem>
+                            <SelectItem value="german">German</SelectItem>
+                            <SelectItem value="chinese">Chinese</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Layout Options */}
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="rtl-layout"
+                            checked={formConfig.theme?.rtlLayout || false}
+                            onCheckedChange={(checked) => setFormConfig(prev => ({
+                              ...prev,
+                              theme: { ...prev.theme, rtlLayout: checked }
+                            }))}
+                          />
+                          <Label htmlFor="rtl-layout">Right-to-Left Layout</Label>
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="uppercase-labels"
+                            checked={formConfig.theme?.uppercaseLabels || false}
+                            onCheckedChange={(checked) => setFormConfig(prev => ({
+                              ...prev,
+                              theme: { ...prev.theme, uppercaseLabels: checked }
+                            }))}
+                          />
+                          <Label htmlFor="uppercase-labels">Uppercase Input Labels</Label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Layout & Sizing */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Layers className="h-4 w-4" />
+                      <h4 className="font-medium">Layout & Sizing</h4>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {/* Input Size */}
+                      <div className="space-y-2">
+                        <Label>Input Size</Label>
+                        <div className="flex gap-2">
+                          {["S", "M", "L"].map((size) => (
+                            <Button
+                              key={size}
+                              variant={formConfig.theme?.inputSize === size ? "default" : "outline"}
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => setFormConfig(prev => ({
+                                ...prev,
+                                theme: { ...prev.theme, inputSize: size }
+                              }))}
+                            >
+                              {size}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Input Roundness */}
+                      <div className="space-y-2">
+                        <Label>Input Roundness</Label>
+                        <div className="flex gap-2">
+                          {[
+                            { value: "none", label: "□", title: "Square" },
+                            { value: "small", label: "⬜", title: "Small" },
+                            { value: "medium", label: "▢", title: "Medium" },
+                            { value: "large", label: "◯", title: "Round" }
+                          ].map((roundness) => (
+                            <Button
+                              key={roundness.value}
+                              variant={formConfig.theme?.inputRoundness === roundness.value ? "default" : "outline"}
+                              size="sm"
+                              className="flex-1"
+                              title={roundness.title}
+                              onClick={() => setFormConfig(prev => ({
+                                ...prev,
+                                theme: { ...prev.theme, inputRoundness: roundness.value }
+                              }))}
+                            >
+                              {roundness.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Form Width */}
+                      <div className="space-y-2">
+                        <Label>Form Width</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            variant={formConfig.theme?.formWidth === "centered" ? "default" : "outline"}
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setFormConfig(prev => ({
+                              ...prev,
+                              theme: { ...prev.theme, formWidth: "centered" }
+                            }))}
+                          >
+                            Centered
+                          </Button>
+                          <Button
+                            variant={formConfig.theme?.formWidth === "full" ? "default" : "outline"}
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setFormConfig(prev => ({
+                              ...prev,
+                              theme: { ...prev.theme, formWidth: "full" }
+                            }))}
+                          >
+                            Full Width
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Branding & Media */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Settings className="h-4 w-4" />
+                      <h4 className="font-medium">Branding & Media</h4>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {/* Logo */}
+                      <div className="space-y-2">
+                        <Label>Logo</Label>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                          <div className="text-gray-400 mb-2">📁</div>
+                          <Button variant="outline" size="sm">Upload</Button>
+                          <p className="text-xs text-gray-500 mt-2">PNG, JPG up to 2MB</p>
+                        </div>
+                      </div>
+
+                      {/* Cover Image */}
+                      <div className="space-y-2">
+                        <Label>Cover (~1500px)</Label>
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                          <div className="text-gray-400 mb-2">🖼️</div>
+                          <Button variant="outline" size="sm">Upload</Button>
+                          <p className="text-xs text-gray-500 mt-2">Recommended: 1500px width</p>
+                        </div>
+                      </div>
+
+                      {/* Hide OpnForm Branding */}
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="hide-branding"
+                          checked={formConfig.theme?.hideBranding || false}
+                          onCheckedChange={(checked) => setFormConfig(prev => ({
+                            ...prev,
+                            theme: { ...prev.theme, hideBranding: checked }
+                          }))}
+                        />
+                        <Label htmlFor="hide-branding" className="flex items-center gap-2">
+                          Hide FormCraft Branding
+                          <Badge variant="secondary" className="text-xs">PRO</Badge>
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Advanced Options */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Settings className="h-4 w-4" />
+                      <h4 className="font-medium">Advanced Options</h4>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="progress-bar"
+                          checked={formConfig.theme?.showProgressBar || false}
+                          onCheckedChange={(checked) => setFormConfig(prev => ({
+                            ...prev,
+                            theme: { ...prev.theme, showProgressBar: checked }
+                          }))}
+                        />
+                        <Label htmlFor="progress-bar">Show progress bar</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="transparent-bg"
+                          checked={formConfig.theme?.transparentBackground || false}
+                          onCheckedChange={(checked) => setFormConfig(prev => ({
+                            ...prev,
+                            theme: { ...prev.theme, transparentBackground: checked }
+                          }))}
+                        />
+                        <Label htmlFor="transparent-bg">Transparent Background</Label>
+                        <p className="text-xs text-gray-500">When form is embedded</p>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="confetti-success"
+                          checked={formConfig.theme?.confettiOnSuccess || false}
+                          onCheckedChange={(checked) => setFormConfig(prev => ({
+                            ...prev,
+                            theme: { ...prev.theme, confettiOnSuccess: checked }
+                          }))}
+                        />
+                        <Label htmlFor="confetti-success">Confetti on successful submission</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="auto-focus"
+                          checked={formConfig.theme?.autoFocusFirst || false}
+                          onCheckedChange={(checked) => setFormConfig(prev => ({
+                            ...prev,
+                            theme: { ...prev.theme, autoFocusFirst: checked }
+                          }))}
+                        />
+                        <Label htmlFor="auto-focus">Auto focus first input on page</Label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

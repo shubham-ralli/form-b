@@ -1,0 +1,23 @@
+Error deleting user: BSONError: input must be a 24 character hex string, 12 byte Uint8Array, or an integer
+    at new ObjectId (/home/runner/workspace/node_modules/bson/lib/bson.cjs:2538:23)
+    at DELETE (webpack-internal:///(rsc)/./app/api/admin/users/[id]/route.ts:99:21)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async /home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:55831
+    at async eO.execute (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:46527)
+    at async eO.handle (/home/runner/workspace/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:57165)
+    at async doRender (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1352:42)
+    at async cacheEntry.responseCache.get.routeKind (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1562:40)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1482:28)
+    at async DevServer.renderPageComponent (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1908:24)
+    at async DevServer.renderToResponseImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:1946:32)
+    at async DevServer.pipeImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:921:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/runner/workspace/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/runner/workspace/node_modules/next/dist/server/base-server.js:817:17)
+    at async /home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/runner/workspace/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/runner/workspace/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/home/runner/workspace/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/home/runner/workspace/node_modules/next/dist/server/lib/start-server.js:141:13)
+ DELETE /api/admin/users/undefined 500 in 86ms

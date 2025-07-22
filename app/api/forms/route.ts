@@ -18,13 +18,8 @@ export async function GET(request: NextRequest) {
     const forms = db.collection("forms")
     const users = db.collection("users")
 
-    // Check if user is admin
-    const user = await users.findOne({ _id: new ObjectId(userId) })
-    const isAdmin = user?.role === 'admin'
-
-    // If admin, get all forms; otherwise, get only user's forms
-    const query = isAdmin ? {} : { userId: new ObjectId(userId) }
-    const userForms = await forms.find(query).toArray()
+    // Always get only current user's forms
+    const userForms = await forms.find({ userId: new ObjectId(userId) }).toArray()
 
     // Get submission counts for each form
     const submissions = db.collection("submissions")

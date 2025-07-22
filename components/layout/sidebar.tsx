@@ -44,6 +44,7 @@ const navigation = [
   { name: "Embed Codes", href: "/embed", icon: Code },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Submissions", href: "/submissions", icon: Database },
+  { name: "User List", href: "/admin/users", icon: Users },
   { name: "Test Forms", href: "/test", icon: Globe },
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Help", href: "/help", icon: HelpCircle },

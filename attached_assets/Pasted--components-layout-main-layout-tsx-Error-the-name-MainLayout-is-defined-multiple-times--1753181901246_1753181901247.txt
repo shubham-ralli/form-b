@@ -1,0 +1,78 @@
+./components/layout/main-layout.tsx
+Error: 
+  × the name `MainLayout` is defined multiple times
+    ╭─[/home/runner/workspace/components/layout/main-layout.tsx:12:1]
+ 12 │   email: string
+ 13 │ }
+ 14 │ 
+ 15 │ export default function MainLayout({ children }: { children: React.ReactNode }) {
+    ·                         ─────┬────
+    ·                              ╰── previous definition of `MainLayout` here
+ 16 │   const [user, setUser] = useState<User | null>(null)
+ 17 │   const [loading, setLoading] = useState(true)
+ 18 │   const router = useRouter()
+ 19 │   const pathname = usePathname()
+ 20 │ 
+ 21 │   // Public pages that don't require authentication
+ 22 │   const publicPages = ["/login", "/register"]
+ 23 │   const isPublicPage = publicPages.includes(pathname)
+ 24 │   const isLivePage = pathname.startsWith("/live/")
+ 25 │ 
+ 26 │   useEffect(() => {
+ 27 │     const checkAuth = async () => {
+ 28 │       if (isPublicPage || isLivePage) {
+ 29 │         setLoading(false)
+ 30 │         return
+ 31 │       }
+ 32 │ 
+ 33 │       try {
+ 34 │         const response = await fetch("/api/auth/me")
+ 35 │         if (response.ok) {
+ 36 │           const userData = await response.json()
+ 37 │           setUser(userData)
+ 38 │         } else {
+ 39 │           router.push("/login")
+ 40 │         }
+ 41 │       } catch (error) {
+ 42 │         console.error("Auth check failed:", error)
+ 43 │         router.push("/login")
+ 44 │       }
+ 45 │       setLoading(false)
+ 46 │     }
+ 47 │ 
+ 48 │     checkAuth()
+ 49 │   }, [pathname, router, isPublicPage, isLivePage])
+ 50 │ 
+ 51 │   if (loading) {
+ 52 │     return <div className="flex items-center justify-center h-screen">Loading...</div>
+ 53 │   }
+ 54 │ 
+ 55 │   if (isPublicPage || isLivePage) {
+ 56 │     return <>{children}</>
+ 57 │   }
+ 58 │ 
+ 59 │   if (!user) {
+ 60 │     return null
+ 61 │   }
+ 62 │ 
+ 63 │   return (
+ 64 │     <div className="flex h-screen bg-gray-100">
+ 65 │       <Sidebar />
+ 66 │       <main className="flex-1 overflow-auto">
+ 67 │         {children}
+ 68 │       </main>
+ 69 │     </div>
+ 70 │   )
+ 71 │ }
+ 72 │ 
+ 73 │ interface MainLayoutProps {
+ 74 │   children: React.ReactNode
+ 75 │ }
+ 76 │ 
+ 77 │ export function MainLayout({ children }: MainLayoutProps) {
+    ·                 ─────┬────
+    ·                      ╰── `MainLayout` redefined here
+ 78 │   const [user, setUser] = useState<User | null>(null)
+ 79 │   const [loading, setLoading] = useState(true)
+ 80 │   const router = useRouter()
+    ╰────

@@ -18,17 +18,6 @@ export async function GET(request: NextRequest) {
     const forms = db.collection("forms")
     const users = db.collection("users")
 
-    // Check if user account is active
-    const user = await users.findOne({ _id: new ObjectId(userId) })
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    if (user.isActive === false) {
-      // Return empty forms array for disabled users
-      return NextResponse.json({ forms: [] })
-    }
-
     // Always get only current user's forms
     const userForms = await forms.find({ userId: new ObjectId(userId) }).toArray()
 
@@ -74,14 +63,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
-      )
-    }
-
-    // Check if user account is disabled
-    if (user.isActive === false) {
-      return NextResponse.json(
-        { error: "Your account is disabled. Please contact support." },
-        { status: 403 }
       )
     }
 

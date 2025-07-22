@@ -1,13 +1,13 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
@@ -17,16 +17,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const searchParams = useSearchParams()
-
-  useEffect(() => {
-    const error = searchParams.get('error')
-    if (error === 'account_deleted') {
-      toast.error("Your account has been deleted. Please contact support if you believe this is an error.")
-    } else if (error === 'account_disabled') {
-      toast.error("Your account has been disabled. Please contact support for assistance.")
-    }
-  }, [searchParams])
 
   // Check if user is already logged in
   useEffect(() => {

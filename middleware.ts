@@ -5,7 +5,7 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes that don't require authentication
-  const publicRoutes = ["/login", "/register", "/api/auth/login", "/api/auth/register", "/embed.js"]
+  const publicRoutes = ["/login", "/register", "/api/auth/login", "/api/auth/register", "/embed.js", "/api/auth/validate-session", "/api/auth/check-status"]
 
   // API routes that should be public for embed functionality
   const publicApiRoutes = ["/api/forms/", "/api/submissions"]

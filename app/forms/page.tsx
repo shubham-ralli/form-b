@@ -1,1607 +1,460 @@
 "use client";
 
-import type React from "react";
-import { useState, useCallback, useEffect } from "react";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
-  Trash2,
-  Settings,
-  Save,
-  Eye,
-  Plus,
-  X,
-  ArrowLeft,
-  Palette,
-  Layers,
-  Type,
-  Hash,
-  Calendar,
-  Mail,
-  Phone,
-  Link,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   FileText,
-  List,
-  Circle,
-  CheckSquare,
-  Heading1,
-  AlignLeft,
-  Star,
+  Plus,
+  Search,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Eye,
   Copy,
-  ChevronDown,
-  HelpCircle,
+  ExternalLink,
+  Calendar,
+  Users,
+  Activity,
+  Filter,
 } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { useForms } from "@/contexts/FormsContext";
 import { toast } from "sonner";
 
-interface FormElement {
-  id: string;
-  type: string;
-  label: string;
-  placeholder?: string;
-  required?: boolean;
-  options?: string[];
-  width?: "w-full" | "w-1/2" | "w-1/3" | "w-2/3";
-  min?: number;
-  max?: number;
-  content?: string;
-  description?: string;
-  defaultValue?: string;
-  validation?: {
-    pattern?: string;
-    minLength?: number;
-    maxLength?: number;
-    customError?: string;
-  };
-  logic?: {
-    showIf?: string;
-    hideIf?: string;
-  };
-  style?: {
-    fontSize?: string;
-    color?: string;
-    backgroundColor?: string;
-  };
-}
-
-interface FormConfig {
-  id?: string;
+interface Form {
+  _id: string;
   title: string;
-  subtitle?: string;
-  elements: FormElement[];
-  submissionType: "message" | "redirect";
-  redirectUrl?: string;
-  successMessageHtml?: string;
+  description: string;
+  elements: any[];
   isActive: boolean;
-  buttonText?: string;
-  theme?: {
-    primaryColor?: string;
-    backgroundColor?: string;
-    fontFamily?: string;
-    name?: string;
-    colorMode?: string;
-    inputSize?: string;
-    inputRoundness?: number;
-    formWidth?: string;
+  createdAt: string;
+  updatedAt: string;
+  submissionCount: number;
+}
+
+export default function MyFormsPage() {
+  const router = useRouter();
+  const { forms, loading, error, refreshForms, deleteForm } = useForms();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredForms, setFilteredForms] = useState<Form[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [formToDelete, setFormToDelete] = useState<Form | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+
+  useEffect(() => {
+    refreshForms();
+  }, [refreshForms]);
+
+  useEffect(() => {
+    let filtered = forms;
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter((form) =>
+        form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        form.description.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((form) =>
+        statusFilter === "active" ? form.isActive : !form.isActive
+      );
+    }
+
+    setFilteredForms(filtered);
+  }, [forms, searchTerm, statusFilter]);
+
+  const handleCreateForm = () => {
+    router.push("/builder");
   };
-}
 
-const ELEMENT_TYPES = [
-  { type: "text", label: "Text Input", icon: Type, category: "Input" },
-  { type: "email", label: "Email", icon: Mail, category: "Input" },
-  { type: "password", label: "Password", icon: Hash, category: "Input" },
-  { type: "number", label: "Number", icon: Hash, category: "Input" },
-  { type: "date", label: "Date", icon: Calendar, category: "Input" },
-  { type: "tel", label: "Phone", icon: Phone, category: "Input" },
-  { type: "url", label: "URL", icon: Link, category: "Input" },
-  { type: "textarea", label: "Text Area", icon: FileText, category: "Input" },
-  { type: "select", label: "Dropdown", icon: ChevronDown, category: "Choice" },
-  { type: "radio", label: "Radio", icon: Circle, category: "Choice" },
-  {
-    type: "checkbox",
-    label: "Checkbox",
-    icon: CheckSquare,
-    category: "Choice",
-  },
-  { type: "heading", label: "Heading", icon: Heading1, category: "Content" },
-  {
-    type: "paragraph",
-    label: "Paragraph",
-    icon: AlignLeft,
-    category: "Content",
-  },
-  { type: "rating", label: "Rating", icon: Star, category: "Special" },
-  { type: "file", label: "File Upload", icon: Plus, category: "Special" },
-];
+  const handleEditForm = (formId: string) => {
+    router.push(`/builder?id=${formId}`);
+  };
 
-function ElementIcon({
-  type,
-  className,
-}: {
-  type: string;
-  className?: string;
-}) {
-  const elementType = ELEMENT_TYPES.find((el) => el.type === type);
-  const IconComponent = elementType?.icon || Type;
-  return <IconComponent className={className} />;
-}
+  const handleViewForm = (formId: string) => {
+    router.push(`/live/${formId}`);
+  };
 
-function DraggableElement({
-  type,
-  label,
-  icon: IconComponent,
-}: {
-  type: string;
-  label: string;
-  icon: any;
-}) {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: "element",
-    item: { type },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  }));
+  const handleDeleteForm = async () => {
+    if (!formToDelete) return;
 
-  return (
-    <div
-      ref={drag}
-      className={cn(
-        "flex items-center gap-3 p-3 rounded-lg border border-gray-200 cursor-move hover:border-blue-300 hover:bg-blue-50 transition-all duration-200",
-        isDragging && "opacity-50",
-      )}
-    >
-      <IconComponent className="h-4 w-4 text-gray-600" />
-      <span className="text-sm font-medium text-gray-700">{label}</span>
-    </div>
-  );
-}
-
-function FormElementRenderer({
-  element,
-  onUpdate,
-  onDelete,
-  onSelect,
-  isSelected = false,
-  isPreview = false,
-}: {
-  element: FormElement;
-  onUpdate: (id: string, updates: Partial<FormElement>) => void;
-  onDelete: (id: string) => void;
-  onSelect: (element: FormElement | null) => void;
-  isSelected?: boolean;
-  isPreview?: boolean;
-}) {
-  const renderElement = () => {
-    switch (element.type) {
-      case "text":
-      case "email":
-      case "password":
-      case "tel":
-      case "url":
-        return (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            {element.description && (
-              <p className="text-xs text-gray-500">{element.description}</p>
-            )}
-            <Input
-              type={element.type}
-              placeholder={
-                element.placeholder || `Enter ${element.label.toLowerCase()}`
-              }
-              disabled={!isPreview}
-              required={element.required}
-              defaultValue={element.defaultValue}
-              className="w-full"
-            />
-          </div>
-        );
-
-      case "number":
-        return (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            {element.description && (
-              <p className="text-xs text-gray-500">{element.description}</p>
-            )}
-            <Input
-              type="number"
-              placeholder={element.placeholder}
-              disabled={!isPreview}
-              required={element.required}
-              min={element.min}
-              max={element.max}
-              defaultValue={element.defaultValue}
-              className="w-full"
-            />
-          </div>
-        );
-
-      case "date":
-        return (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            {element.description && (
-              <p className="text-xs text-gray-500">{element.description}</p>
-            )}
-            <Input
-              type="date"
-              disabled={!isPreview}
-              required={element.required}
-              defaultValue={element.defaultValue}
-              className="w-full"
-            />
-          </div>
-        );
-
-      case "textarea":
-        return (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            {element.description && (
-              <p className="text-xs text-gray-500">{element.description}</p>
-            )}
-            <Textarea
-              placeholder={element.placeholder}
-              disabled={!isPreview}
-              required={element.required}
-              defaultValue={element.defaultValue}
-              className="w-full min-h-[100px]"
-            />
-          </div>
-        );
-
-      case "select":
-        return (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            {element.description && (
-              <p className="text-xs text-gray-500">{element.description}</p>
-            )}
-            <Select disabled={!isPreview}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select an option" />
-              </SelectTrigger>
-              <SelectContent>
-                {element.options?.map((option, index) => (
-                  <SelectItem key={index} value={option}>
-                    {option}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        );
-
-      case "radio":
-        return (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            {element.description && (
-              <p className="text-xs text-gray-500">{element.description}</p>
-            )}
-            <RadioGroup disabled={!isPreview} className="space-y-2">
-              {element.options?.map((option, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value={option}
-                    id={`${element.id}-${index}`}
-                  />
-                  <Label htmlFor={`${element.id}-${index}`} className="text-sm">
-                    {option}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-        );
-
-      case "checkbox":
-        return (
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              disabled={!isPreview}
-              required={element.required}
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-            />
-            <Label className="text-sm">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-          </div>
-        );
-
-      case "heading":
-        return (
-          <div className="space-y-2">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {element.content || element.label}
-            </h2>
-          </div>
-        );
-
-      case "paragraph":
-        return (
-          <div className="space-y-2">
-            <p className="text-gray-600">{element.content || element.label}</p>
-          </div>
-        );
-
-      case "rating":
-        return (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            {element.description && (
-              <p className="text-xs text-gray-500">{element.description}</p>
-            )}
-            <div className="flex space-x-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className="h-6 w-6 text-gray-300 hover:text-yellow-400 cursor-pointer"
-                />
-              ))}
-            </div>
-          </div>
-        );
-
-      case "file":
-        return (
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {element.label}
-              {element.required && <span className="text-red-500 ml-1">*</span>}
-            </Label>
-            {element.description && (
-              <p className="text-xs text-gray-500">{element.description}</p>
-            )}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
-              <Plus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-600">
-                Click to upload or drag and drop
-              </p>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
+    try {
+      await deleteForm(formToDelete._id);
+      toast.success("Form deleted successfully!");
+      setDeleteDialogOpen(false);
+      setFormToDelete(null);
+    } catch (error) {
+      console.error("Error deleting form:", error);
+      toast.error("Failed to delete form. Please try again.");
     }
   };
 
-  return (
-    <div
-      className={cn(
-        "relative p-4 rounded-lg transition-all duration-200 cursor-pointer group",
-        isSelected
-          ? "bg-blue-50 border-2 border-blue-400"
-          : "bg-white border border-gray-200 hover:border-gray-300",
-        !isPreview && "hover:shadow-sm",
-      )}
-      onClick={() => !isPreview && onSelect(element)}
-    >
-      {!isPreview && (
-        <>
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <div className="flex gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(element.id);
-                }}
-                className="h-6 w-6 p-0 hover:bg-red-50"
-              >
-                <Trash2 className="h-3 w-3 text-red-600" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Copy element logic here
-                }}
-                className="h-6 w-6 p-0 hover:bg-gray-50"
-              >
-                <Copy className="h-3 w-3 text-gray-600" />
-              </Button>
-            </div>
-          </div>
+  const handleCopyFormUrl = (formId: string) => {
+    const url = `${window.location.origin}/live/${formId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Form URL copied to clipboard!");
+  };
 
-          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Badge variant="secondary" className="text-xs">
-              <ElementIcon type={element.type} className="h-3 w-3 mr-1" />
-              {element.type}
-            </Badge>
-          </div>
-        </>
-      )}
+  const toggleFormStatus = async (formId: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch(`/api/forms/${formId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !currentStatus }),
+      });
 
-      <div className={cn("w-full", !isPreview && "mt-6")}>
-        {renderElement()}
-      </div>
-    </div>
-  );
-}
+      if (response.ok) {
+        refreshForms();
+        toast.success(`Form ${!currentStatus ? "activated" : "deactivated"} successfully!`);
+      } else {
+        throw new Error("Failed to update form status");
+      }
+    } catch (error) {
+      console.error("Error toggling form status:", error);
+      toast.error("Failed to update form status. Please try again.");
+    }
+  };
 
-function DropZone({
-  elements,
-  onDrop,
-  onUpdate,
-  onDelete,
-  onSelectElement,
-  selectedElement,
-}: {
-  elements: FormElement[];
-  onDrop: (item: { type: string }) => void;
-  onUpdate: (id: string, updates: Partial<FormElement>) => void;
-  onDelete: (id: string) => void;
-  onSelectElement: (element: FormElement | null) => void;
-  selectedElement: FormElement | null;
-}) {
-  const [{ isOver }, drop] = useDrop(() => ({
-    accept: "element",
-    drop: onDrop,
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-    }),
-  }));
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
-  return (
-    <div
-      ref={drop}
-      className={cn(
-        "min-h-[600px] p-6 rounded-lg transition-all duration-200",
-        isOver
-          ? "bg-blue-50 border-2 border-dashed border-blue-400"
-          : "bg-gray-50 border border-gray-200",
-      )}
-    >
-      {elements.length === 0 ? (
-        <div className="text-center py-16">
-          <Layers className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-600 mb-2">
-            Start building your form
-          </h3>
-          <p className="text-sm text-gray-500">
-            Drag elements from the sidebar to add them to your form
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {elements.map((element) => (
-            <FormElementRenderer
-              key={element.id}
-              element={element}
-              onUpdate={onUpdate}
-              onDelete={onDelete}
-              onSelect={onSelectElement}
-              isSelected={selectedElement?.id === element.id}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ElementPropertiesPanel({
-  element,
-  onUpdate,
-  onClose,
-}: {
-  element: FormElement | null;
-  onUpdate: (id: string, updates: Partial<FormElement>) => void;
-  onClose: () => void;
-}) {
-  if (!element) {
+  if (loading) {
     return (
-      <div className="p-6 text-center text-gray-500">
-        <Settings className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-        <p>Select an element to edit its properties</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="h-64 bg-gray-200 rounded"></div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const [label, setLabel] = useState(element.label);
-  const [placeholder, setPlaceholder] = useState(element.placeholder || "");
-  const [required, setRequired] = useState(element.required || false);
-  const [description, setDescription] = useState(element.description || "");
-  const [options, setOptions] = useState(element.options || []);
-  const [newOption, setNewOption] = useState("");
-
-  const hasOptions = ["select", "radio"].includes(element.type);
-
-  const updateElement = (updates: Partial<FormElement>) => {
-    onUpdate(element.id, updates);
-  };
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Error Loading Forms</h3>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <Button onClick={refreshForms}>Try Again</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="p-4 border-b">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ElementIcon type={element.type} className="h-4 w-4" />
-            <h3 className="font-medium">
-              {element.type.charAt(0).toUpperCase() + element.type.slice(1)}{" "}
-              Field
-            </h3>
-          </div>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">My Forms</h1>
+          <p className="text-gray-600 mt-1">
+            Create, manage, and share your forms
+          </p>
+        </div>
+
+        <Button onClick={handleCreateForm} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          Create Form
+        </Button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search forms by title or description..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
-        <Tabs defaultValue="options" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mx-4 mt-4">
-            <TabsTrigger value="options">Options</TabsTrigger>
-            <TabsTrigger value="logic">Logic</TabsTrigger>
-            <TabsTrigger value="validation">Validation</TabsTrigger>
-          </TabsList>
+      {/* Filters */}
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700">Status:</span>
+        </div>
+        <div className="flex gap-2">
+          {[
+            { value: "all", label: "All Forms" },
+            { value: "active", label: "Active" },
+            { value: "inactive", label: "Inactive" },
+          ].map((option) => (
+            <Button
+              key={option.value}
+              variant={statusFilter === option.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setStatusFilter(option.value as any)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+      </div>
 
-          <TabsContent value="options" className="p-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="field-name">Field Name</Label>
-              <Input
-                id="field-name"
-                value={label}
-                onChange={(e) => {
-                  setLabel(e.target.value);
-                  updateElement({ label: e.target.value });
-                }}
-                placeholder="Enter field name"
-              />
-            </div>
-
-            {element.type !== "checkbox" &&
-              element.type !== "heading" &&
-              element.type !== "paragraph" && (
-                <div className="space-y-2">
-                  <Label htmlFor="placeholder">Placeholder</Label>
-                  <Input
-                    id="placeholder"
-                    value={placeholder}
-                    onChange={(e) => {
-                      setPlaceholder(e.target.value);
-                      updateElement({ placeholder: e.target.value });
-                    }}
-                    placeholder="Enter placeholder text"
-                  />
-                </div>
-              )}
-
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => {
-                  setDescription(e.target.value);
-                  updateElement({ description: e.target.value });
-                }}
-                placeholder="Enter help text"
-                rows={2}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="required"
-                checked={required}
-                onCheckedChange={(checked) => {
-                  setRequired(checked);
-                  updateElement({ required: checked });
-                }}
-              />
-              <Label htmlFor="required">Required field</Label>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Block Width</Label>
-              <Select
-                value={element.width || "w-full"}
-                onValueChange={(value) =>
-                  updateElement({ width: value as any })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="w-full">Full Width</SelectItem>
-                  <SelectItem value="w-1/2">Half Width</SelectItem>
-                  <SelectItem value="w-1/3">One Third</SelectItem>
-                  <SelectItem value="w-2/3">Two Thirds</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {hasOptions && (
-              <div className="space-y-2">
-                <Label>Options</Label>
-                <div className="space-y-2">
-                  {options.map((option, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input value={option} readOnly className="flex-1" />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newOptions = options.filter(
-                            (_, i) => i !== index,
-                          );
-                          setOptions(newOptions);
-                          updateElement({ options: newOptions });
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={newOption}
-                      onChange={(e) => setNewOption(e.target.value)}
-                      placeholder="Add new option"
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter" && newOption.trim()) {
-                          const newOptions = [...options, newOption.trim()];
-                          setOptions(newOptions);
-                          updateElement({ options: newOptions });
-                          setNewOption("");
-                        }
-                      }}
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (newOption.trim()) {
-                          const newOptions = [...options, newOption.trim()];
-                          setOptions(newOptions);
-                          updateElement({ options: newOptions });
-                          setNewOption("");
-                        }
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Forms</p>
+                <p className="text-2xl font-bold">{forms.length}</p>
               </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="logic" className="p-4 space-y-4">
-            <div className="text-center py-8 text-gray-500">
-              <HelpCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-              <p className="text-sm">Logic rules coming soon</p>
+              <FileText className="h-8 w-8 text-blue-600" />
             </div>
-          </TabsContent>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="validation" className="p-4 space-y-4">
-            <div className="text-center py-8 text-gray-500">
-              <HelpCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-              <p className="text-sm">Validation rules coming soon</p>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-}
-
-export default function FormBuilder() {
-  const { addForm, updateForm } = useForms();
-  const [formConfig, setFormConfig] = useState<FormConfig>({
-    title: "Untitled Form",
-    subtitle: "Created with FormCraft",
-    elements: [],
-    submissionType: "message",
-    successMessageHtml:
-      "<h3>Thank you for your submission!</h3><p>We have received your response.</p>",
-    isActive: true,
-    buttonText: "Submit Form",
-    theme: {},
-  });
-  const [selectedElement, setSelectedElement] = useState<FormElement | null>(
-    null,
-  );
-  const [activeTab, setActiveTab] = useState("build");
-  const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Load existing form if editing or set title from URL
-  useEffect(() => {
-    const formId = searchParams.get("id");
-    const titleParam = searchParams.get("title");
-
-    if (formId) {
-      setIsEditing(true);
-      loadForm(formId);
-    } else if (titleParam) {
-      setFormConfig((prev) => ({
-        ...prev,
-        title: decodeURIComponent(titleParam),
-      }));
-    }
-  }, [searchParams]);
-
-  const loadForm = async (formId: string) => {
-    try {
-      const response = await fetch(`/api/forms/${formId}`);
-      if (response.ok) {
-        const form = await response.json();
-        setFormConfig({
-          id: form.id,
-          title: form.title,
-          elements: form.elements,
-          submissionType: form.submissionType || "message",
-          redirectUrl: form.redirectUrl || "",
-          successMessageHtml:
-            form.successMessageHtml ||
-            "<h3>Thank you for your submission!</h3><p>We have received your response.</p>",
-          isActive: form.isActive !== undefined ? form.isActive : true,
-          theme: form.theme || {},
-        });
-      }
-    } catch (error) {
-      console.error("Error loading form:", error);
-    }
-  };
-
-  const handleDrop = useCallback((item: { type: string }) => {
-    const newElement: FormElement = {
-      id: `element_${Date.now()}`,
-      type: item.type,
-      label: `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} Field`,
-      required: false,
-      width: "w-full",
-      ...(item.type === "select" || item.type === "radio"
-        ? { options: ["Option 1", "Option 2", "Option 3"] }
-        : {}),
-      ...(item.type === "checkbox" ? { label: "Check this box" } : {}),
-    };
-
-    setFormConfig((prev) => ({
-      ...prev,
-      elements: [...prev.elements, newElement],
-    }));
-
-    // Auto-select the new element
-    setSelectedElement(newElement);
-  }, []);
-
-  const handleUpdateElement = useCallback(
-    (id: string, updates: Partial<FormElement>) => {
-      setFormConfig((prev) => ({
-        ...prev,
-        elements: prev.elements.map((el) =>
-          el.id === id ? { ...el, ...updates } : el,
-        ),
-      }));
-
-      // Update selected element if it's the one being updated
-      if (selectedElement?.id === id) {
-        setSelectedElement((prev) => (prev ? { ...prev, ...updates } : null));
-      }
-    },
-    [selectedElement],
-  );
-
-  const handleDeleteElement = useCallback(
-    (id: string) => {
-      setFormConfig((prev) => ({
-        ...prev,
-        elements: prev.elements.filter((el) => el.id !== id),
-      }));
-
-      // Clear selection if deleted element was selected
-      if (selectedElement?.id === id) {
-        setSelectedElement(null);
-      }
-    },
-    [selectedElement],
-  );
-
-  const handleSaveForm = async () => {
-    if (!formConfig.title.trim()) {
-      toast.error("Please enter a form title");
-      return;
-    }
-
-    if (formConfig.elements.length === 0) {
-      toast.error("Please add at least one form element");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const url = isEditing ? `/api/forms/${formConfig.id}` : "/api/forms";
-      const method = isEditing ? "PUT" : "POST";
-
-      const formData = {
-        title: formConfig.title,
-        description: formConfig.subtitle || "",
-        elements: formConfig.elements,
-        submissionType: formConfig.submissionType,
-        redirectUrl: formConfig.redirectUrl,
-        successMessageHtml: formConfig.successMessageHtml,
-        isActive: formConfig.isActive,
-        theme: formConfig.theme,
-      };
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-
-        if (isEditing) {
-          updateForm(formConfig.id!, {
-            title: formData.title,
-            description: formData.description,
-            elements: formData.elements,
-            isActive: formData.isActive,
-            updatedAt: new Date().toISOString(),
-          });
-          toast.success("Form updated successfully!");
-        } else {
-          const newForm = {
-            _id: result._id || result.formId,
-            title: formData.title,
-            description: formData.description,
-            elements: formData.elements,
-            isActive: formData.isActive,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            submissionCount: 0,
-          };
-          addForm(newForm);
-          toast.success("Form created successfully!");
-        }
-
-        router.push("/forms");
-      } else {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `Failed to ${isEditing ? "update" : "save"} form`,
-        );
-      }
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : `Error ${isEditing ? "updating" : "saving"} form`;
-      toast.error(errorMessage);
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const groupedElements = ELEMENT_TYPES.reduce(
-    (acc, element) => {
-      if (!acc[element.category]) {
-        acc[element.category] = [];
-      }
-      acc[element.category].push(element);
-      return acc;
-    },
-    {} as Record<string, typeof ELEMENT_TYPES>,
-  );
-
-  return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="min-h-screen bg-gray-50">
-        {/* Top Navigation */}
-        <div className="bg-white border-b">
-          <div className="flex items-center justify-between px-6 py-3">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/forms")}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="w-auto"
-              >
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger
-                    value="build"
-                    className="flex items-center gap-2"
-                  >
-                    <Layers className="h-4 w-4" />
-                    Build
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="design"
-                    className="flex items-center gap-2"
-                  >
-                    <Palette className="h-4 w-4" />
-                    Design
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
-            </div>
-
-            <div className="flex-1 max-w-md mx-8">
-              <Input
-                value={formConfig.title}
-                onChange={(e) =>
-                  setFormConfig((prev) => ({ ...prev, title: e.target.value }))
-                }
-                className="text-center font-medium border-none shadow-none text-lg"
-                placeholder="My Form"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm">
-                <Eye className="h-4 w-4 mr-2" />
-                Preview
-              </Button>
-              <Button onClick={handleSaveForm} size="sm" disabled={loading}>
-                {loading ? "Publishing..." : "Publish Form"}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex h-[calc(100vh-73px)]">
-          {/* Left Sidebar - Elements */}
-          <div className="w-80 bg-white border-r overflow-y-auto">
-            <div className="p-4">
-              <div className="mb-4">
-                <h3 className="font-semibold text-gray-900 mb-2">Add Block</h3>
-                <p className="text-sm text-gray-500">
-                  Drag elements to your form
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Forms</p>
+                <p className="text-2xl font-bold">
+                  {forms.filter((f) => f.isActive).length}
                 </p>
               </div>
-
-              <div className="space-y-6">
-                {Object.entries(groupedElements).map(([category, elements]) => (
-                  <div key={category}>
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">
-                      {category}
-                    </h4>
-                    <div className="space-y-2">
-                      {elements.map((elementType) => (
-                        <DraggableElement
-                          key={elementType.type}
-                          type={elementType.type}
-                          label={elementType.label}
-                          icon={elementType.icon}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <Activity className="h-8 w-8 text-green-600" />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Center - Form Preview */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-6">
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-white rounded-lg shadow-sm border">
-                  <div className="p-6 border-b">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1">
-                          <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                          <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                        </div>
-                        <span className="text-sm text-gray-500 ml-4">
-                          Form Preview
-                        </span>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="text-center mb-6">
-                      <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                        {formConfig.title}
-                      </h1>
-                      {formConfig.subtitle && (
-                        <p className="text-gray-600">{formConfig.subtitle}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <DropZone
-                      elements={formConfig.elements}
-                      onDrop={handleDrop}
-                      onUpdate={handleUpdateElement}
-                      onDelete={handleDeleteElement}
-                      onSelectElement={setSelectedElement}
-                      selectedElement={selectedElement}
-                    />
-
-                    {formConfig.elements.length > 0 && (
-                      <div className="mt-8 text-center">
-                        <Button className="w-full max-w-xs">
-                          {formConfig.buttonText || "Submit"}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Submissions</p>
+                <p className="text-2xl font-bold">
+                  {forms.reduce((acc, form) => acc + (form.submissionCount || 0), 0)}
+                </p>
               </div>
+              <Users className="h-8 w-8 text-purple-600" />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Right Sidebar - Element Properties */}
-          <div className="w-80 bg-white border-l">
-            {activeTab === "build" && (
-              <ElementPropertiesPanel
-                element={selectedElement}
-                onUpdate={handleUpdateElement}
-                onClose={() => setSelectedElement(null)}
-              />
-            )}
-            {activeTab === "design" && (
-              <TabsContent value="design" className="h-full overflow-y-auto">
-                <div className="p-4 space-y-6">
-                  {/* Basic Appearance */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                      <Palette className="h-4 w-4" />
-                      Basic Appearance
-                    </div>
-
-                    {/* Form Theme */}
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Form Theme</Label>
-                      <Select
-                        value={formConfig.theme?.name || "simple"}
-                        onValueChange={(value) =>
-                          setFormConfig((prev) => ({
-                            ...prev,
-                            theme: { ...prev.theme, name: value },
-                          }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="simple">
-                            Simple (no shadows)
-                          </SelectItem>
-                          <SelectItem value="modern">Modern</SelectItem>
-                          <SelectItem value="minimal">Minimal</SelectItem>
-                          <SelectItem value="classic">Classic</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Accent Color */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">
-                          Accent Color
-                        </Label>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs text-blue-600 hover:text-blue-700"
-                        >
-                          Reset
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-blue-600 rounded border"></div>
-                        <Input
-                          type="color"
-                          value={formConfig.theme?.primaryColor || "#3b82f6"}
-                          onChange={(e) =>
-                            setFormConfig((prev) => ({
-                              ...prev,
-                              theme: {
-                                ...prev.theme,
-                                primaryColor: e.target.value,
-                              },
-                            }))
-                          }
-                          className="w-16 h-8 p-0 border-0"
-                        />
-                        <span className="text-sm text-gray-600">#3b82f6</span>
-                      </div>
-                    </div>
-
-                    {/* Color Mode */}
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium">Color Mode</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { value: "system", label: "System", icon: "🖥️" },
-                          { value: "light", label: "Light", icon: "☀️" },
-                          { value: "dark", label: "Dark", icon: "🌙" },
-                        ].map((mode) => (
-                          <Button
-                            key={mode.value}
-                            variant={
-                              formConfig.theme?.colorMode === mode.value
-                                ? "default"
-                                : "outline"
-                            }
-                            size="sm"
-                            className="flex flex-col gap-1 h-auto py-3"
-                            onClick={() =>
-                              setFormConfig((prev) => ({
-                                ...prev,
-                                theme: { ...prev.theme, colorMode: mode.value },
-                              }))
-                            }
-                          >
-                            <span className="text-lg">{mode.icon}</span>
-                            <span className="text-xs">{mode.label}</span>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Text & Language */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                      <Type className="h-4 w-4" />
-                      Text & Language
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">
-                          Font Family
-                        </Label>
-                        <Select
-                          value={formConfig.theme?.fontFamily || "default"}
-                          onValueChange={(value) =>
-                            setFormConfig((prev) => ({
-                              ...prev,
-                              theme: { ...prev.theme, fontFamily: value },
-                            }))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="default">Default</SelectItem>
-                            <SelectItem value="sans">Sans Serif</SelectItem>
-                            <SelectItem value="serif">Serif</SelectItem>
-                            <SelectItem value="mono">Monospace</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Language</Label>
-                        <Select defaultValue="english">
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="english">English</SelectItem>
-                            <SelectItem value="spanish">Spanish</SelectItem>
-                            <SelectItem value="french">French</SelectItem>
-                            <SelectItem value="german">German</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">
-                          Right-to-Left Layout
-                        </Label>
-                        <Switch />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">
-                          Uppercase Input Labels
-                        </Label>
-                        <Switch />
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Layout & Sizing */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                      <Layers className="h-4 w-4" />
-                      Layout & Sizing
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">
-                          Input Size
-                        </Label>
-                        <div className="flex gap-1">
-                          {["S", "M", "L"].map((size) => (
-                            <Button
-                              key={size}
-                              variant={
-                                formConfig.theme?.inputSize ===
-                                size.toLowerCase()
-                                  ? "default"
-                                  : "outline"
-                              }
-                              size="sm"
-                              className="flex-1"
-                              onClick={() =>
-                                setFormConfig((prev) => ({
-                                  ...prev,
-                                  theme: {
-                                    ...prev.theme,
-                                    inputSize: size.toLowerCase(),
-                                  },
-                                }))
-                              }
-                            >
-                              {size}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">
-                          Input Roundness
-                        </Label>
-                        <div className="flex gap-1">
-                          {["□", "⬜", "◻"].map((shape, index) => (
-                            <Button
-                              key={index}
-                              variant={
-                                formConfig.theme?.inputRoundness === index
-                                  ? "default"
-                                  : "outline"
-                              }
-                              size="sm"
-                              className="flex-1"
-                              onClick={() =>
-                                setFormConfig((prev) => ({
-                                  ...prev,
-                                  theme: {
-                                    ...prev.theme,
-                                    inputRoundness: index,
-                                  },
-                                }))
-                              }
-                            >
-                              {shape}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Form Width</Label>
-                      <div className="flex gap-2">
-                        <Button
-                          variant={
-                            formConfig.theme?.formWidth === "centered"
-                              ? "default"
-                              : "outline"
-                          }
-                          size="sm"
-                          onClick={() =>
-                            setFormConfig((prev) => ({
-                              ...prev,
-                              theme: { ...prev.theme, formWidth: "centered" },
-                            }))
-                          }
-                        >
-                          Centered
-                        </Button>
-                        <Button
-                          variant={
-                            formConfig.theme?.formWidth === "full"
-                              ? "default"
-                              : "outline"
-                          }
-                          size="sm"
-                          onClick={() =>
-                            setFormConfig((prev) => ({
-                              ...prev,
-                              theme: { ...prev.theme, formWidth: "full" },
-                            }))
-                          }
-                        >
-                          Full Width
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Branding & Media */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                      <Star className="h-4 w-4" />
-                      Branding & Media
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Logo</Label>
-                        <Button
-                          variant="outline"
-                          className="w-full h-16 flex flex-col gap-1"
-                        >
-                          <Plus className="h-4 w-4" />
-                          <span className="text-xs">Upload</span>
-                        </Button>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">
-                          Cover (~1500px)
-                        </Label>
-                        <Button
-                          variant="outline"
-                          className="w-full h-16 flex flex-col gap-1"
-                        >
-                          <Plus className="h-4 w-4" />
-                          <span className="text-xs">Upload</span>
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">
-                          Hide OpnForm Branding
-                        </Label>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-xs">
-                            PRO
-                          </Badge>
-                          <Switch />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Advanced Options */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                      <Settings className="h-4 w-4" />
-                      Advanced Options
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">
-                          Show progress bar
-                        </Label>
-                        <Switch />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label className="text-sm font-medium">
-                            Transparent Background
-                          </Label>
-                          <p className="text-xs text-gray-500">
-                            When form is embedded
-                          </p>
-                        </div>
-                        <Switch />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">
-                          Confetti on successful submission
-                        </Label>
-                        <Switch />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">
-                          Auto focus first input on page
-                        </Label>
-                        <Switch defaultChecked />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            )}
-            {activeTab === "settings" && (
-              <TabsContent value="settings" className="h-full overflow-y-auto">
-                <div className="p-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="form-title">Form Title</Label>
-                    <Input
-                      id="form-title"
-                      value={formConfig.title}
-                      onChange={(e) =>
-                        setFormConfig((prev) => ({
-                          ...prev,
-                          title: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter form title"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="form-subtitle">Form Subtitle</Label>
-                    <Input
-                      id="form-subtitle"
-                      value={formConfig.subtitle || ""}
-                      onChange={(e) =>
-                        setFormConfig((prev) => ({
-                          ...prev,
-                          subtitle: e.target.value,
-                        }))
-                      }
-                      placeholder="Enter form subtitle (optional)"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="button-text">Button Text</Label>
-                    <Input
-                      id="button-text"
-                      value={formConfig.buttonText || "Submit"}
-                      onChange={(e) =>
-                        setFormConfig((prev) => ({
-                          ...prev,
-                          buttonText: e.target.value,
-                        }))
-                      }
-                      placeholder="Submit"
-                    />
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label>After Submission</Label>
-                    <RadioGroup
-                      value={formConfig.submissionType}
-                      onValueChange={(value) =>
-                        setFormConfig((prev) => ({
-                          ...prev,
-                          submissionType: value as any,
-                        }))
-                      }
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="message" id="message" />
-                        <Label htmlFor="message">Show message</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="redirect" id="redirect" />
-                        <Label htmlFor="redirect">Redirect to URL</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  {formConfig.submissionType === "redirect" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="redirect-url">Redirect URL</Label>
-                      <Input
-                        id="redirect-url"
-                        value={formConfig.redirectUrl || ""}
-                        onChange={(e) =>
-                          setFormConfig((prev) => ({
-                            ...prev,
-                            redirectUrl: e.target.value,
-                          }))
-                        }
-                        placeholder="https://example.com/thank-you"
-                      />
-                    </div>
-                  )}
-
-                  {formConfig.submissionType === "message" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="success-message">Success Message</Label>
-                      <Textarea
-                        id="success-message"
-                        value={formConfig.successMessageHtml || ""}
-                        onChange={(e) =>
-                          setFormConfig((prev) => ({
-                            ...prev,
-                            successMessageHtml: e.target.value,
-                          }))
-                        }
-                        placeholder="<h3>Thank you!</h3><p>Your form has been submitted successfully.</p>"
-                        rows={4}
-                      />
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            )}
-          </div>
-        </div>
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Avg. Fields</p>
+                <p className="text-2xl font-bold">
+                  {forms.length > 0 
+                    ? Math.round(forms.reduce((acc, form) => acc + (form.elements?.length || 0), 0) / forms.length)
+                    : 0
+                  }
+                </p>
+              </div>
+              <Eye className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </DndProvider>
+
+      {/* Forms Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredForms.map((form) => (
+          <Card key={form._id} className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg truncate">{form.title}</CardTitle>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                    {form.description || "No description provided"}
+                  </p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleViewForm(form._id)}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Form
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleEditForm(form._id)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Form
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleCopyFormUrl(form._id)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy Link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(`/live/${form._id}`, '_blank')}>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open in New Tab
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setFormToDelete(form);
+                        setDeleteDialogOpen(true);
+                      }}
+                      className="text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Form
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              <div className="space-y-3">
+                {/* Status Badge */}
+                <div className="flex items-center justify-between">
+                  <Badge 
+                    variant={form.isActive ? "default" : "secondary"}
+                    className="cursor-pointer"
+                    onClick={() => toggleFormStatus(form._id, form.isActive)}
+                  >
+                    {form.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                  <span className="text-xs text-gray-500">
+                    Click to toggle
+                  </span>
+                </div>
+
+                {/* Form Stats */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">
+                      {form.elements?.length || 0} fields
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600">
+                      {form.submissionCount || 0} submissions
+                    </span>
+                  </div>
+                </div>
+
+                {/* Dates */}
+                <div className="text-xs text-gray-500 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3 w-3" />
+                    <span>Created: {formatDate(form.createdAt)}</span>
+                  </div>
+                  {form.updatedAt !== form.createdAt && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-3 w-3" />
+                      <span>Updated: {formatDate(form.updatedAt)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewForm(form._id)}
+                    className="flex-1"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEditForm(form._id)}
+                    className="flex-1"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Empty State */}
+      {filteredForms.length === 0 && (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                {searchTerm || statusFilter !== "all" ? "No forms found" : "No forms created yet"}
+              </h3>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                {searchTerm || statusFilter !== "all"
+                  ? "Try adjusting your search terms or filters to find what you're looking for."
+                  : "Get started by creating your first form. It's easy and takes just a few minutes!"
+                }
+              </p>
+              {(!searchTerm && statusFilter === "all") && (
+                <Button onClick={handleCreateForm} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Create Your First Form
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the form "{formToDelete?.title}" and all its submissions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setFormToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteForm} className="bg-red-600 hover:bg-red-700">
+              Delete Form
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

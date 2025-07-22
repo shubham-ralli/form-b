@@ -27,10 +27,31 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const [currentUser, setCurrentUser] = useState<any>(null)
 
   useEffect(() => {
-    fetchUsers()
+    checkUserRole()
   }, [])
+
+  const checkUserRole = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const userData = await response.json()
+        setCurrentUser(userData)
+        if (userData.role === 'admin') {
+          fetchUsers()
+        } else {
+          setLoading(false)
+        }
+      } else {
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error("Error checking user role:", error)
+      setLoading(false)
+    }
+  }
 
   const fetchUsers = async () => {
     try {
@@ -97,6 +118,19 @@ export default function AdminUsersPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-lg">Loading users...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!currentUser || currentUser.role !== 'admin') {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-red-600 mb-2">Access Denied</h2>
+            <p className="text-gray-600">You need admin privileges to access this page.</p>
+          </div>
         </div>
       </div>
     )
@@ -173,12 +207,14 @@ export default function AdminUsersPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Link href={`/admin/users/${user._id}/forms`}>
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Forms
-                        </Button>
-                      </Link>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => window.location.href = `/admin/users/${user._id}/forms`}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Forms
+                      </Button>
                       <Button
                         variant={user.isActive ? "outline" : "default"}
                         size="sm"

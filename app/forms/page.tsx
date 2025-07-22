@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -134,7 +133,7 @@ export default function FormsPage() {
   const copyEmbedCode = (formId: string) => {
     const embedCode = `<div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
 <script src="${window.location.origin}/embed.js"></script>`
-    
+
     navigator.clipboard.writeText(embedCode)
     toast.success("Embed code copied to clipboard!")
   }
@@ -312,3 +311,14 @@ export default function FormsPage() {
     </div>
   )
 }
+const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(`${type} copied to clipboard!`, {
+        duration: 5000,
+      })
+    }).catch(() => {
+      toast.error("Failed to copy to clipboard", {
+        duration: 5000,
+      })
+    })
+  }

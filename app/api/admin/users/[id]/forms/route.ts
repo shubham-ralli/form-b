@@ -7,56 +7,59 @@ export const runtime = "nodejs"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    // Validate user ID parameter
+    if (!params.id || params.id === 'undefined' || !ObjectId.isValid(params.id)) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
+    }
+
     const userId = await getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Validate params.id
-    if (!params.id || params.id === 'undefined' || params.id.length !== 24) {
-      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
-    }
-
+    // Check if user is admin
     const client = await clientPromise
     const db = client.db("formcraft")
-    const forms = db.collection("forms")
     const users = db.collection("users")
-    const submissions = db.collection("submissions")
-
-    // Check if current user is admin
     const currentUser = await users.findOne({ _id: new ObjectId(userId) })
-    if (currentUser?.role !== 'admin') {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 })
+
+    if (!currentUser || currentUser.role !== 'admin') {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // Get target user
+    // Get target user and their forms
     const targetUser = await users.findOne({ _id: new ObjectId(params.id) })
     if (!targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Get user's forms
-    const userForms = await forms.find({ userId: new ObjectId(params.id) }).toArray()
+    const forms = db.collection("forms")
+    const userForms = await forms.find({ createdBy: new ObjectId(params.id) }).toArray()
 
     // Get submission counts for each form
-    const formsWithCounts = await Promise.all(
+    const submissions = db.collection("submissions")
+    const formsWithSubmissions = await Promise.all(
       userForms.map(async (form) => {
         const submissionCount = await submissions.countDocuments({ formId: form._id.toString() })
         return {
-          ...form,
           id: form._id.toString(),
+          title: form.title,
+          elements: form.elements || [],
+          createdAt: form.createdAt,
+          updatedAt: form.updatedAt,
           submissions: submissionCount,
+          isActive: form.isActive
         }
-      }),
+      })
     )
 
     return NextResponse.json({
       user: {
         id: targetUser._id.toString(),
-        name: targetUser.name || 'No name',
+        name: targetUser.name,
         email: targetUser.email
       },
-      forms: formsWithCounts
+      forms: formsWithSubmissions
     })
   } catch (error) {
     console.error("Error fetching user forms:", error)

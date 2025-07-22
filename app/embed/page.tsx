@@ -51,14 +51,16 @@ export default function EmbedPage() {
 <script src="${baseUrl}/embed.js"></script>`
   }
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error("Failed to copy:", error)
-    }
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(`${type} copied to clipboard!`, {
+        duration: 5000,
+      })
+    }).catch(() => {
+      toast.error("Failed to copy to clipboard", {
+        duration: 5000,
+      })
+    })
   }
 
   const embedCode = selectedFormId ? generateEmbedCode(selectedFormId) : ""
@@ -109,7 +111,7 @@ export default function EmbedPage() {
                   <Button
                     size="sm"
                     className="absolute top-1/2 right-1 transform -translate-y-1/2"
-                    onClick={() => copyToClipboard(`${baseUrl}/live/${selectedFormId}`)}
+                    onClick={() => copyToClipboard(`${baseUrl}/live/${selectedFormId}`, "Live URL")}
                   >
                     {copied ? (
                     <>
@@ -147,7 +149,7 @@ export default function EmbedPage() {
                   <Button
                     size="sm"
                     className="absolute top-2 right-2"
-                    onClick={() => copyToClipboard(embedCode)}
+                    onClick={() => copyToClipboard(embedCode, "Embed Code")}
                   >
                     {copied ? (
                     <>

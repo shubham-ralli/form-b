@@ -51,8 +51,10 @@ export default function AdminUserFormsPage() {
   const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
-    if (params.id) {
+    if (params.id && params.id !== 'undefined') {
       fetchUserForms()
+    } else {
+      setLoading(false)
     }
   }, [params.id])
 
@@ -65,17 +67,25 @@ export default function AdminUserFormsPage() {
 
   const fetchUserForms = async () => {
     try {
+      if (!params.id || params.id === 'undefined') {
+        console.error("Invalid user ID")
+        setLoading(false)
+        return
+      }
+      
       const response = await fetch(`/api/admin/users/${params.id}/forms`)
       if (response.ok) {
         const data = await response.json()
         setUser(data.user)
-        setForms(data.forms)
-        setFilteredForms(data.forms)
+        setForms(data.forms || [])
+        setFilteredForms(data.forms || [])
       } else {
         console.error("Failed to fetch user forms")
+        setUser(null)
       }
     } catch (error) {
       console.error("Error fetching user forms:", error)
+      setUser(null)
     } finally {
       setLoading(false)
     }

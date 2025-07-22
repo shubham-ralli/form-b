@@ -1,15 +1,14 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Copy, Edit, ExternalLink, Trash2, Plus, Eye, Power, PowerOff, Globe, Code } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Copy, Edit, ExternalLink, Trash2, Plus, Eye, Power, PowerOff, Globe, Code, MoreHorizontal, FileText, Search } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
@@ -21,20 +20,26 @@ interface Form {
   createdAt: string
   updatedAt: string
   submissionCount: number
+  elements?: any[]
 }
 
 export default function FormsPage() {
   const [forms, setForms] = useState<Form[]>([])
+  const [filteredForms, setFilteredForms] = useState<Form[]>([])
   const [loading, setLoading] = useState(true)
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [newForm, setNewForm] = useState({
-    title: "",
-    description: "",
-  })
+  const [searchTerm, setSearchTerm] = useState("")
 
   useEffect(() => {
     fetchForms()
   }, [])
+
+  useEffect(() => {
+    const filtered = forms.filter((form) =>
+      form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (form.description && form.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
+    setFilteredForms(filtered)
+  }, [forms, searchTerm])
 
   const fetchForms = async () => {
     try {
@@ -44,50 +49,25 @@ export default function FormsPage() {
         // Handle both array response and object with forms property
         const formsData = Array.isArray(data) ? data : (data.forms || [])
         setForms(formsData)
+        setFilteredForms(formsData)
       } else {
         toast.error("Failed to fetch forms")
         setForms([])
+        setFilteredForms([])
       }
     } catch (error) {
       console.error("Error fetching forms:", error)
       toast.error("Error fetching forms")
       setForms([])
+      setFilteredForms([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCreateForm = async () => {
-    if (!newForm.title.trim()) {
-      toast.error("Form title is required")
-      return
-    }
-
-    try {
-      const response = await fetch("/api/forms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(newForm),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        toast.success("Form created successfully")
-        setShowCreateDialog(false)
-        setNewForm({ title: "", description: "" })
-        fetchForms()
-        // Redirect to form builder
-        window.location.href = `/forms/${data.formId}`
-      } else {
-        const error = await response.json()
-        toast.error(error.error || "Failed to create form")
-      }
-    } catch (error) {
-      console.error("Error creating form:", error)
-      toast.error("Error creating form")
-    }
+  const handleCreateForm = () => {
+    // Redirect directly to builder page
+    window.location.href = '/builder'
   }
 
   const handleDeleteForm = async (formId: string) => {
@@ -133,27 +113,49 @@ export default function FormsPage() {
   const copyLiveUrl = (formId: string) => {
     const url = `${window.location.origin}/live/${formId}`
     navigator.clipboard.writeText(url)
-    showAlert("Live URL copied to clipboard!")
+    toast.success("Live URL copied to clipboard!")
   }
 
   const copyEmbedCode = (formId: string) => {
     const embedCode = `<div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
 <script src="${window.location.origin}/embed.js"></script>`
     navigator.clipboard.writeText(embedCode)
-    showAlert("Embed code copied to clipboard!")
+    toast.success("Embed code copied to clipboard!")
   }
 
-  const showAlert = (message: string) => {
-    // Create and show alert
-    const alertDiv = document.createElement('div')
-    alertDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50'
-    alertDiv.textContent = message
-    document.body.appendChild(alertDiv)
+  const duplicateForm = async (formId: string) => {
+    try {
+      // Get form data first
+      const response = await fetch(`/api/forms/${formId}`)
+      if (response.ok) {
+        const formData = await response.json()
+        
+        // Create new form with copied data
+        const newFormData = {
+          title: `${formData.title} (Copy)`,
+          description: formData.description || "",
+          elements: formData.elements || []
+        }
 
-    // Remove alert after 5 seconds
-    setTimeout(() => {
-      document.body.removeChild(alertDiv)
-    }, 5000)
+        const createResponse = await fetch("/api/forms", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newFormData),
+        })
+
+        if (createResponse.ok) {
+          toast.success("Form duplicated successfully")
+          fetchForms()
+        } else {
+          toast.error("Failed to duplicate form")
+        }
+      }
+    } catch (error) {
+      console.error("Error duplicating form:", error)
+      toast.error("Error duplicating form")
+    }
   }
 
   if (loading) {
@@ -170,140 +172,135 @@ export default function FormsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold">My Forms</h1>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Form
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New Form</DialogTitle>
-              <DialogDescription>
-                Create a new form to start collecting responses.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title">Form Title</Label>
-                <Input
-                  id="title"
-                  value={newForm.title}
-                  onChange={(e) => setNewForm({ ...newForm, title: e.target.value })}
-                  placeholder="Enter form title"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  value={newForm.description}
-                  onChange={(e) => setNewForm({ ...newForm, description: e.target.value })}
-                  placeholder="Enter form description"
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreateForm}>Create Form</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={handleCreateForm}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Form
+        </Button>
       </div>
 
-      <div className="grid gap-6">
-        {forms && forms.length > 0 && forms.map((form) => (
-          <Card key={form._id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search forms..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {filteredForms && filteredForms.length > 0 && filteredForms.map((form) => (
+          <Card key={form._id} className="hover:shadow-lg transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-lg font-semibold truncate">
                     {form.title}
-                    <Badge variant={form.isActive ? "default" : "secondary"}>
-                      {form.isActive ? "Active" : "Inactive"}
-                    </Badge>
                   </CardTitle>
-                  <CardDescription>{form.description || "No description"}</CardDescription>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-sm text-gray-600">
+                      {form.elements?.length || 0} fields
+                    </span>
+                    <span className="text-gray-400">•</span>
+                    <span className="text-sm text-gray-600">
+                      {form.submissionCount || 0} submissions
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyLiveUrl(form._id)}
-                  >
-                    <Globe className="h-4 w-4 mr-1" />
-                    Copy Live URL
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyEmbedCode(form._id)}
-                  >
-                    <Code className="h-4 w-4 mr-1" />
-                    Copy Embed
-                  </Button>
-                  <Link href={`/forms/${form._id}`}>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreHorizontal className="h-4 w-4" />
                     </Button>
-                  </Link>
-                  <Link href={`/live/${form._id}`} target="_blank">
-                    <Button variant="outline" size="sm">
-                      <ExternalLink className="h-4 w-4 mr-1" />
-                      Preview
-                    </Button>
-                  </Link>
-                  <Button
-                    variant={form.isActive ? "outline" : "default"}
-                    size="sm"
-                    onClick={() => handleToggleFormStatus(form._id, form.isActive)}
-                  >
-                    {form.isActive ? (
-                      <PowerOff className="h-4 w-4 mr-1" />
-                    ) : (
-                      <Power className="h-4 w-4 mr-1" />
-                    )}
-                    {form.isActive ? "Disable" : "Enable"}
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Form</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{form.title}"? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteForm(form._id)}>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => window.location.href = `/forms/${form._id}`}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.location.href = `/builder?id=${form._id}`}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Form
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => duplicateForm(form._id)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicate
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => copyEmbedCode(form._id)}>
+                      <Code className="h-4 w-4 mr-2" />
+                      Copy Embed Code
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open(`/live/${form._id}`, '_blank')}>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Test Form
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleToggleFormStatus(form._id, form.isActive)}>
+                      {form.isActive ? (
+                        <>
+                          <PowerOff className="h-4 w-4 mr-2" />
+                          Deactivate
+                        </>
+                      ) : (
+                        <>
+                          <Power className="h-4 w-4 mr-2" />
+                          Activate
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <DropdownMenuItem 
+                          className="text-red-600 focus:text-red-600"
+                          onSelect={(e) => e.preventDefault()}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
                           Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
+                        </DropdownMenuItem>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Form</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{form.title}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteForm(form._id)}>
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="font-medium">Created:</span> {new Date(form.createdAt).toLocaleDateString()}
-                </div>
-                <div>
-                  <span className="font-medium">Updated:</span> {new Date(form.updatedAt).toLocaleDateString()}
-                </div>
-                <div>
-                  <span className="font-medium">Submissions:</span> {form.submissionCount}
+            <CardContent className="pt-0">
+              <div className="flex items-center justify-between">
+                <Badge variant={form.isActive ? "default" : "secondary"} className="rounded-full">
+                  {form.isActive ? "Active" : "Inactive"}
+                </Badge>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.open(`/live/${form._id}`, '_blank')}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.location.href = `/builder?id=${form._id}`}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -311,26 +308,32 @@ export default function FormsPage() {
         ))}
       </div>
 
-      {(!forms || forms.length === 0) && !loading && (
-        <div className="text-center py-8">
-          <p className="text-gray-500 mb-4">No forms created yet</p>
-          <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Create Your First Form
-          </Button>
+      {(!filteredForms || filteredForms.length === 0) && !loading && (
+        <div className="text-center py-12">
+          {searchTerm ? (
+            <>
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No forms found</h3>
+              <p className="text-gray-600 mb-4">
+                No forms match your search criteria. Try adjusting your search terms.
+              </p>
+              <Button variant="outline" onClick={() => setSearchTerm("")}>
+                Clear Search
+              </Button>
+            </>
+          ) : (
+            <>
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No forms created yet</h3>
+              <p className="text-gray-600 mb-4">Get started by creating your first form</p>
+              <Button onClick={handleCreateForm}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Form
+              </Button>
+            </>
+          )}
         </div>
       )}
     </div>
   )
 }
-const copyToClipboard = (text: string, type: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success(`${type} copied to clipboard!`, {
-        duration: 5000,
-      })
-    }).catch(() => {
-      toast.error("Failed to copy to clipboard", {
-        duration: 5000,
-      })
-    })
-  }

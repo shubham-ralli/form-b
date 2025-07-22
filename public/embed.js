@@ -21,7 +21,7 @@
           window.location.hostname === "127.0.0.1"
         ) {
           apiUrl =
-            "https://63454937-214e-4451-b30c-3180aaf162f8-00-1gp0zrilxanc1.pike.replit.dev";
+            "http://localhost:3000";
         } else if (
           window.location.protocol === "file:" ||
           window.location.protocol === "https:" ||
@@ -29,7 +29,7 @@
         ) {
           // Handle file:// protocol for local testing
           apiUrl =
-            "https://63454937-214e-4451-b30c-3180aaf162f8-00-1gp0zrilxanc1.pike.replit.dev";
+            "http://localhost:3000";
           container.innerHTML = `
             <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 20px 0;">
               <h4 style="margin: 0 0 8px 0; color: #92400e;">⚠️ Local File Detected</h4>
@@ -146,14 +146,43 @@
       const elementWrapperStyle = `margin-bottom: 0; ${element.width === "w-1/2" ? "flex: 0 0 calc(50% - 8px);" : "width: 100%;"}`; // Apply width here
 
       switch (element.type) {
-        case "text":
-        case "email":
+          case "text":
+          case "email":
+          case "password":
+          case "tel":
+          case "url":
           return `
             <div style="${elementWrapperStyle}">
               ${labelHTML}
               <input type="${element.type}" name="${element.id}" placeholder="${element.placeholder || ""}" ${element.required ? "required" : ""} style="${inputStyle}">
             </div>
           `;
+
+
+        case "number":
+  return `
+    <div style="${elementWrapperStyle}">
+      ${labelHTML}
+      <input type="number" 
+             name="${element.id}" 
+             placeholder="${element.placeholder || ""}" 
+             ${element.required ? "required" : ""} 
+             min="${element.min !== undefined ? element.min : ""}" 
+             max="${element.max !== undefined ? element.max : ""}"
+             style="${inputStyle}">
+    </div>
+  `;
+
+case "date":
+  return `
+    <div style="${elementWrapperStyle}">
+      ${labelHTML}
+      <input type="date" 
+             name="${element.id}" 
+             ${element.required ? "required" : ""} 
+             style="${inputStyle}">
+    </div>
+  `;
 
         case "textarea":
           return `
@@ -202,6 +231,7 @@
               </label>
             </div>
           `;
+
 
         default:
           return "";

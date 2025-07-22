@@ -39,28 +39,10 @@ export default function EmbedPage() {
 
   const generateEmbedCode = (formId: string) => {
     const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
-    return `<!-- FormCraft Embed Script -->
-<div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
-<script>
-  (function() {
-    var script = document.createElement('script');
-    script.src = '${baseUrl}/embed.js';
-    script.onload = function() {
-      if (window.FormCraft) {
-        FormCraft.render('${formId}', 'formcraft-${formId}');
-      }
-    };
-    script.onerror = function() {
-      document.getElementById('formcraft-${formId}').innerHTML = 
-        '<div style="color: red; padding: 20px;">Error loading FormCraft script</div>';
-    };
-    document.head.appendChild(script);
-  })();
-</script>
-
+    return `
 <!-- Alternative: Simple data attribute method -->
-<!-- <div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
-<script src="${baseUrl}/embed.js"></script> -->`
+<div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
+<script src="${baseUrl}/embed.js"></script>`
   }
 
   const copyToClipboard = async (text: string) => {

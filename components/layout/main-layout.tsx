@@ -23,11 +23,13 @@ export function MainLayout({ children }: MainLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
 
-  // Public routes that don't require authentication
-  const publicRoutes = ["/login", "/register"]
+  // Public pages that don't require authentication
+  const publicPages = ["/login", "/register", "/public-forms"]
+  const isPublicPage = publicPages.includes(pathname)
+  const isLivePage = pathname.startsWith("/live/")
 
   useEffect(() => {
-    if (publicRoutes.includes(pathname)) {
+    if (publicPages.includes(pathname)) {
       setLoading(false)
       return
     }
@@ -64,7 +66,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   }
 
   // Render public pages without sidebar
-  if (publicRoutes.includes(pathname)) {
+  if (publicPages.includes(pathname)) {
     return <>{children}</>
   }
 

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -78,6 +77,12 @@ export default function LiveFormsPage() {
           <Globe className="h-6 w-6" />
           <h1 className="text-2xl font-bold">Live Forms</h1>
         </div>
+        <Link href="/public-forms">
+          <Button variant="outline">
+            <Globe className="h-4 w-4 mr-2" />
+            View Public Forms
+          </Button>
+        </Link>
         <Badge variant="secondary">{filteredForms.length} Active Forms</Badge>
       </div>
 
@@ -121,7 +126,7 @@ export default function LiveFormsPage() {
                   <span>Created: {new Date(form.createdAt).toLocaleDateString()}</span>
                   <span>{form.submissions} submissions</span>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Link href={`/live/${form.id}`} className="flex-1">
                     <Button className="w-full" size="sm">

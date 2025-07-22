@@ -20,7 +20,7 @@ interface Form {
   createdAt: string
   updatedAt: string
   submissionCount: number
-  elements: any[]
+  elements?: any[]
 }
 
 export default function FormsPage() {

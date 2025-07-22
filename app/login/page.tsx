@@ -1,15 +1,14 @@
 "use client"
 
+import type React from "react"
 import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { AlertTriangle, Eye, EyeOff } from "lucide-react"
-import Link from "next/link"
-import { toast } from "sonner"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -18,8 +17,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const accountDeletedError = searchParams.get("error")
 
   // Check if user is already logged in
   useEffect(() => {
@@ -86,14 +83,6 @@ export default function LoginPage() {
           <CardDescription>Sign in to your FormCraft account</CardDescription>
         </CardHeader>
         <CardContent>
-          {accountDeletedError === "account_deleted" && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Your account has been deleted. Please contact support if you believe this is an error.
-              </AlertDescription>
-            </Alert>
-          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">{error}</div>

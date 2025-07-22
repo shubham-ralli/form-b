@@ -21,7 +21,7 @@
           window.location.hostname === "127.0.0.1"
         ) {
           apiUrl =
-            "http://localhost:3000";
+            "https://86172128-9733-45e2-bede-5f005cd85445-00-wydt1x6vl4rq.pike.replit.dev";
         } else if (
           window.location.protocol === "file:" ||
           window.location.protocol === "https:" ||
@@ -29,7 +29,7 @@
         ) {
           // Handle file:// protocol for local testing
           apiUrl =
-            "http://localhost:3000";
+            "https://86172128-9733-45e2-bede-5f005cd85445-00-wydt1x6vl4rq.pike.replit.dev";
           container.innerHTML = `
             <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 20px 0;">
               <h4 style="margin: 0 0 8px 0; color: #92400e;">⚠️ Local File Detected</h4>
@@ -146,11 +146,11 @@
       const elementWrapperStyle = `margin-bottom: 0; ${element.width === "w-1/2" ? "flex: 0 0 calc(50% - 8px);" : "width: 100%;"}`; // Apply width here
 
       switch (element.type) {
-          case "text":
-          case "email":
-          case "password":
-          case "tel":
-          case "url":
+        case "text":
+        case "email":
+        case "password":
+        case "tel":
+        case "url":
           return `
             <div style="${elementWrapperStyle}">
               ${labelHTML}
@@ -158,9 +158,8 @@
             </div>
           `;
 
-
         case "number":
-  return `
+          return `
     <div style="${elementWrapperStyle}">
       ${labelHTML}
       <input type="number" 
@@ -173,8 +172,8 @@
     </div>
   `;
 
-case "date":
-  return `
+        case "date":
+          return `
     <div style="${elementWrapperStyle}">
       ${labelHTML}
       <input type="date" 
@@ -231,7 +230,6 @@ case "date":
               </label>
             </div>
           `;
-
 
         default:
           return "";

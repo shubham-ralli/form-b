@@ -17,6 +17,11 @@ export default function FormsPage() {
   const [filteredForms, setFilteredForms] = useState(forms)
   const [searchTerm, setSearchTerm] = useState("")
 
+  // Force refresh on component mount to ensure fresh data
+  useEffect(() => {
+    refreshForms()
+  }, [])
+
   useEffect(() => {
     const filtered = forms.filter((form) =>
       form.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,11 +167,16 @@ export default function FormsPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold">My Forms</h1>
-        <Button onClick={handleCreateForm}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Form
-        </Button>
-      </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={refreshForms} disabled={loading}>
+            {loading ? "Refreshing..." : "Refresh"}
+          </Button>
+          <Button onClick={handleCreateForm}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Form
+          </Button>
+        </div>
+      </div></div>
 
       {/* Search Bar */}
       <div className="mb-6">

@@ -34,30 +34,16 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
   const lastFetchRef = useRef<number>(0)
   const isInitializedRef = useRef(false)
   
-  // Initialize with cached data
+  // Clear any stale cached data on initialization
   useEffect(() => {
-    const cachedForms = storage.getForms()
-    if (cachedForms) {
-      setForms(cachedForms)
-      setLoading(false)
-      isInitializedRef.current = true
-    }
+    // Clear old cache to ensure fresh data
+    storage.clearForms()
+    isInitializedRef.current = false
   }, [])
 
   const fetchForms = useCallback(async (force = false) => {
     // Prevent multiple simultaneous requests
     if (loading && !force) return
-    
-    // Check cache first and if it's fresh (less than 5 minutes old)
-    const cachedForms = storage.getForms()
-    const cacheAge = Date.now() - lastFetchRef.current
-    const isCacheFresh = cacheAge < 5 * 60 * 1000 // 5 minutes
-    
-    if (!force && cachedForms && cachedForms.length > 0 && isCacheFresh && isInitializedRef.current) {
-      setForms(cachedForms)
-      setLoading(false)
-      return
-    }
 
     try {
       setLoading(true)
@@ -72,32 +58,56 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
       
       if (response.ok) {
         const data = await response.json()
-        const formsData = Array.isArray(data) ? data : (data.forms || [])
+        console.log("Raw API response:", data) // Debug log
+        
+        let formsData = []
+        if (Array.isArray(data)) {
+          formsData = data
+        } else if (data.forms && Array.isArray(data.forms)) {
+          formsData = data.forms
+        } else {
+          console.warn("Unexpected API response format:", data)
+          formsData = []
+        }
+        
+        console.log("Processed forms data:", formsData) // Debug log
+        
+        // Ensure all forms have required fields and normalize the data
+        const normalizedForms = formsData.map(form => ({
+          _id: form._id || form.id,
+          title: form.title || `Form - ${new Date().toLocaleDateString()}`,
+          description: form.description || "",
+          isActive: form.isActive !== false,
+          createdAt: form.createdAt || new Date().toISOString(),
+          updatedAt: form.updatedAt || new Date().toISOString(),
+          submissionCount: form.submissionCount || 0,
+          elements: form.elements || []
+        }))
         
         // Sort forms by most recent first
-        const sortedForms = formsData.sort((a, b) => 
-          new Date(b.createdAt || b.updatedAt).getTime() - new Date(a.createdAt || a.updatedAt).getTime()
+        const sortedForms = normalizedForms.sort((a, b) => 
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
         )
+        
+        console.log("Final sorted forms:", sortedForms) // Debug log
         
         setForms(sortedForms)
         storage.setForms(sortedForms)
         lastFetchRef.current = Date.now()
         isInitializedRef.current = true
       } else {
-        setError("Failed to fetch forms")
+        const errorText = await response.text()
+        console.error("API response error:", response.status, errorText)
+        setError(`Failed to fetch forms: ${response.status}`)
       }
     } catch (error) {
       console.error("Error fetching forms:", error)
       setError("Error fetching forms")
-      // Fallback to cached data if available
-      if (cachedForms && cachedForms.length > 0) {
-        setForms(cachedForms)
-        setError(null)
-      }
+      setForms([]) // Clear forms on error
     } finally {
       setLoading(false)
     }
-  }, [loading]) // Only depend on loading to prevent infinite loops
+  }, [loading])
 
   const refreshForms = useCallback(async () => {
     await fetchForms(true)

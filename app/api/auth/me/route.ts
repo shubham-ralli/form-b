@@ -65,7 +65,8 @@ export async function GET(request: NextRequest) {
       ...user,
       formsUsed: formsCount,
       submissionsThisMonth,
-      plan: user.plan || "free"
+      plan: user.plan || "free",
+      role: user.role || 'user',
     })
   } catch (error) {
     console.error("Auth API error:", error)

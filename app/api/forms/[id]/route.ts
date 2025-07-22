@@ -79,15 +79,21 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const db = client.db("formcraft")
     const formsCollection = db.collection("forms")
     const submissionsCollection = db.collection("submissions")
+    const users = db.collection("users")
+
+    // Check if user is admin
+    const user = await users.findOne({ _id: new ObjectId(userId) })
+    const isAdmin = user?.role === 'admin'
 
     // Delete associated submissions first
     await submissionsCollection.deleteMany({ formId: params.id })
 
-    // Then delete the form
-    const result = await formsCollection.deleteOne({
-      _id: new ObjectId(params.id),
-      userId: new ObjectId(userId),
-    })
+    // Admin can delete any form, regular users can only delete their own
+    const deleteQuery = isAdmin 
+      ? { _id: new ObjectId(params.id) }
+      : { _id: new ObjectId(params.id), userId: new ObjectId(userId) }
+
+    const result = await formsCollection.deleteOne(deleteQuery)
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Form not found or unauthorized" }, { status: 404 })

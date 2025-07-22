@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import {
   Eye,
   Code,
@@ -20,6 +20,9 @@ import {
   ExternalLink,
   ToggleRight,
   ToggleLeft,
+  PauseCircle,
+  PlayCircle,
+  Link as LucideLink,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -39,6 +42,7 @@ export default function FormsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const router = useRouter()
+  const [user, setUser] = useState<{ role: string } | null>(null); // Assuming you have user role information
 
   useEffect(() => {
     fetchForms()
@@ -48,6 +52,20 @@ export default function FormsPage() {
     const filtered = forms.filter((form) => form.title.toLowerCase().includes(searchTerm.toLowerCase()))
     setFilteredForms(filtered)
   }, [forms, searchTerm])
+
+  useEffect(() => {
+    // Fetch user role or get it from auth context
+    // Replace with your actual user data fetching logic
+    const fetchUser = async () => {
+      // Simulate fetching user role
+      setUser({ role: 'admin' }); // Example: setting user role to 'admin'
+      // You might fetch user data from an API endpoint like /api/user
+      // const userData = await fetch('/api/user').then(res => res.json());
+      // setUser(userData);
+    };
+
+    fetchUser();
+  }, []);
 
   const fetchForms = async () => {
     try {
@@ -99,7 +117,7 @@ export default function FormsPage() {
 
   const toggleFormStatus = async (formId: string, currentStatus: boolean) => {
     try {
-      const response = await fetch(`/api/forms/${formId}/status`, {
+      await fetch(`/api/forms/${formId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !currentStatus }),
@@ -124,6 +142,14 @@ export default function FormsPage() {
     navigator.clipboard.writeText(embedCode)
     alert("Embed code copied to clipboard!")
   }
+
+  const copyLiveUrl = (formId: string) => {
+    const baseUrl = window.location.origin;
+    const liveUrl = `${baseUrl}/live/${formId}`;
+
+    navigator.clipboard.writeText(liveUrl);
+    alert("Live URL copied to clipboard!");
+  };
 
   if (loading) {
     return (
@@ -214,34 +240,59 @@ export default function FormsPage() {
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => router.push(`/builder?id=${form.id}`)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Form
+                      {user?.role === 'admin' && (
+                        <DropdownMenuItem onClick={() => router.push(`/builder?id=${form.id}`)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Form
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => window.open(`/live/${form.id}`, '_blank')}>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        View Live Form
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => duplicateForm(form)}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Duplicate
+                      <DropdownMenuItem onClick={() => copyLiveUrl(form.id)}>
+                        <LucideLink className="h-4 w-4 mr-2" />
+                        Copy Live URL
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => copyEmbedCode(form.id)}>
                         <Code className="h-4 w-4 mr-2" />
                         Copy Embed Code
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open(`/test?formId=${form.id}`, "_blank")}>
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Test Form
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toggleFormStatus(form.id, form.isActive)}>
-                        {form.isActive ? (
-                          <ToggleLeft className="h-4 w-4 mr-2" />
-                        ) : (
-                          <ToggleRight className="h-4 w-4 mr-2" />
-                        )}
-                        {form.isActive ? "Deactivate" : "Activate"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => deleteForm(form.id)} className="text-red-600">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
+                      {user?.role === 'admin' && (
+                        <DropdownMenuItem onClick={() => duplicateForm(form)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      {user?.role === 'admin' && (
+                        <DropdownMenuItem
+                          onClick={() => toggleFormStatus(form.id, form.isActive)}
+                          className={form.isActive ? "text-orange-600" : "text-green-600"}
+                        >
+                          {form.isActive ? (
+                            <>
+                              <PauseCircle className="h-4 w-4 mr-2" />
+                              Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <PlayCircle className="h-4 w-4 mr-2" />
+                              Activate
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      {(user?.role === 'admin' || !form.isActive) && (
+                        <DropdownMenuItem
+                          onClick={() => deleteForm(form.id)}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

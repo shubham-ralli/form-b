@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
         id: user._id.toString(),
         name: user.name,
         email: user.email,
+        role: user.role || 'user', // Default to 'user' if no role set
       },
     })
   } catch (error) {

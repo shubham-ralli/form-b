@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Copy, Check } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Copy, ExternalLink, Check } from "lucide-react"
 
 interface Form {
   id: string
@@ -18,12 +19,17 @@ export default function EmbedPage() {
   const [selectedFormId, setSelectedFormId] = useState<string>("")
   const [copied, setCopied] = useState(false)
   const searchParams = useSearchParams()
+  const [baseUrl, setBaseUrl] = useState("")
 
   useEffect(() => {
     fetchForms()
     const formId = searchParams.get("formId")
     if (formId) {
       setSelectedFormId(formId)
+    }
+
+    if (typeof window !== "undefined") {
+      setBaseUrl(window.location.origin);
     }
   }, [searchParams])
 
@@ -38,7 +44,6 @@ export default function EmbedPage() {
   }
 
   const generateEmbedCode = (formId: string) => {
-    const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
     return `
 <!-- Alternative: Simple data attribute method -->
 <div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
@@ -87,15 +92,25 @@ export default function EmbedPage() {
         </Card>
 
         {selectedFormId && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Embed Code</CardTitle>
-                  <CardDescription>Copy this code and paste it into your website's HTML</CardDescription>
-                </div>
-                <Button onClick={() => copyToClipboard(embedCode)} size="sm" variant="outline">
-                  {copied ? (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Live Form URL</CardTitle>
+                <CardDescription>Direct link to your form hosted on this webapp</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  <Input 
+                    value={`${baseUrl}/live/${selectedFormId}`}
+                    readOnly
+                    className="pr-20"
+                  />
+                  <Button
+                    size="sm"
+                    className="absolute top-1/2 right-1 transform -translate-y-1/2"
+                    onClick={() => copyToClipboard(`${baseUrl}/live/${selectedFormId}`)}
+                  >
+                    {copied ? (
                     <>
                       <Check className="h-4 w-4 mr-2" />
                       Copied!
@@ -103,16 +118,52 @@ export default function EmbedPage() {
                   ) : (
                     <>
                       <Copy className="h-4 w-4 mr-2" />
-                      Copy Code
+                      Copy
                     </>
                   )}
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Textarea value={embedCode} readOnly className="font-mono text-sm min-h-32" />
-            </CardContent>
-          </Card>
+                  </Button>
+                </div>
+                <div className="mt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.open(`/live/${selectedFormId}`, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Preview Live Form
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Embed Code</CardTitle>
+                <CardDescription>Copy and paste this code into your website's HTML to embed the form</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  <Textarea value={embedCode} readOnly className="font-mono text-sm min-h-32 pr-20" />
+                  <Button
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => copyToClipboard(embedCode)}
+                  >
+                    {copied ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </>
+                  )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </>
         )}
 
         <Card>

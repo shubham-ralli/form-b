@@ -16,8 +16,15 @@ export async function GET(request: NextRequest) {
     const client = await clientPromise
     const db = client.db("formcraft")
     const forms = db.collection("forms")
+    const users = db.collection("users")
 
-    const userForms = await forms.find({ userId: new ObjectId(userId) }).toArray()
+    // Check if user is admin
+    const user = await users.findOne({ _id: new ObjectId(userId) })
+    const isAdmin = user?.role === 'admin'
+
+    // If admin, get all forms; otherwise, get only user's forms
+    const query = isAdmin ? {} : { userId: new ObjectId(userId) }
+    const userForms = await forms.find(query).toArray()
 
     // Get submission counts for each form
     const submissions = db.collection("submissions")
@@ -49,13 +56,21 @@ export async function POST(request: NextRequest) {
     const client = await clientPromise
     const db = client.db("formcraft")
 
-    // Get user to check plan
+    // Get user to check plan and role
     const users = db.collection("users")
     const user = await users.findOne({ _id: new ObjectId(userId) })
     if (!user) {
       return NextResponse.json(
         { error: "User not found" },
         { status: 404 }
+      )
+    }
+
+    // Only admin can create forms
+    if (user.role !== 'admin') {
+      return NextResponse.json(
+        { error: "Only admin users can create forms" },
+        { status: 403 }
       )
     }
 

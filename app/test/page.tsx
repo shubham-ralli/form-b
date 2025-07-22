@@ -68,7 +68,7 @@ export default function TestPage() {
 
     <!-- FormCraft Embed Code -->
     <div id="formcraft-${formId}" data-formcraft-id="${formId}" data-api-url="${baseUrl}"></div>
-    
+
     <script>
         (function() {
             var script = document.createElement('script');
@@ -142,16 +142,18 @@ export default function TestPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <Select value={selectedFormId} onValueChange={setSelectedFormId}>
-                <SelectTrigger>
+              <Select value={selectedFormId || ""} onValueChange={setSelectedFormId}>
+                <SelectTrigger className="w-64">
                   <SelectValue placeholder="Select a form to test" />
                 </SelectTrigger>
                 <SelectContent>
-                  {forms.map((form) => (
-                    <SelectItem key={form.id} value={form.id}>
-                      {form.title}
+                  {forms && forms.length > 0 ? forms.map((form) => (
+                    <SelectItem key={form._id} value={form._id}>
+                      {form.title || "Untitled Form"}
                     </SelectItem>
-                  ))}
+                  )) : (
+                    <SelectItem value="" disabled>No forms available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
 

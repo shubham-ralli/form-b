@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -42,7 +41,6 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Create Form", href: "/builder", icon: PlusCircle },
   { name: "My Forms", href: "/forms", icon: FileText },
-  { name: "Live Forms", href: "/live-forms", icon: Globe },
   { name: "Embed Codes", href: "/embed", icon: Code },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Submissions", href: "/submissions", icon: Database },
@@ -156,7 +154,7 @@ function SidebarContent({
             </Link>
           )
         })}
-        
+
         {/* Admin Navigation */}
         {user?.role === 'admin' && adminNavigation.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))

@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Search, Download, Filter } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Submission {
   id: string
@@ -28,6 +29,7 @@ export default function SubmissionsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [filteredSubmissions, setFilteredSubmissions] = useState<Submission[]>([])
+  const [selectedFormId, setSelectedFormId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -35,7 +37,13 @@ export default function SubmissionsPage() {
 
   useEffect(() => {
     const lowerCaseSearchTerm = searchTerm.toLowerCase()
-    const filtered = submissions.filter((submission) => {
+    let filtered = submissions
+
+    if (selectedFormId && selectedFormId !== "all") {
+      filtered = submissions.filter((submission) => submission.formId === selectedFormId)
+    }
+
+    filtered = filtered.filter((submission) => {
       const formTitle = forms.find((f) => f.id === submission.formId)?.title || "Unknown Form"
       const submissionDataString = JSON.stringify(submission.data).toLowerCase()
       return (
@@ -45,8 +53,9 @@ export default function SubmissionsPage() {
         submission.userAgent.toLowerCase().includes(lowerCaseSearchTerm)
       )
     })
+
     setFilteredSubmissions(filtered)
-  }, [submissions, forms, searchTerm])
+  }, [submissions, forms, searchTerm, selectedFormId])
 
   const fetchData = async () => {
     try {
@@ -146,10 +155,19 @@ export default function SubmissionsPage() {
             className="pl-10"
           />
         </div>
-        <Button variant="outline">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
-        </Button>
+        <Select value={selectedFormId || "all"} onValueChange={setSelectedFormId}>
+          <SelectTrigger className="w-64">
+            <SelectValue placeholder="Filter by form" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Forms</SelectItem>
+            {forms && forms.length > 0 ? forms.map((form) => (
+              <SelectItem key={form._id || form.id} value={form._id || form.id}>
+                {form.title || "Untitled Form"}
+              </SelectItem>
+            )) : null}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Submissions Table */}

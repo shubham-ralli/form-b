@@ -75,13 +75,13 @@ export default function AnalyticsPage() {
       <div className="mb-6">
         <Select value={selectedFormId} onValueChange={setSelectedFormId}>
           <SelectTrigger className="w-64">
-            <SelectValue placeholder="Select a form" />
+            <SelectValue placeholder="Select a form to filter" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Forms</SelectItem>
             {forms.map((form) => (
-              <SelectItem key={form.id} value={form.id}>
-                {form.title}
+              <SelectItem key={form._id || form.id} value={form._id || form.id}>
+                {form.title || "Untitled Form"}
               </SelectItem>
             ))}
           </SelectContent>

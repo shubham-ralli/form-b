@@ -52,15 +52,23 @@ export default function EmbedPage() {
   }
 
   const copyToClipboard = (text: string, type: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success(`${type} copied to clipboard!`, {
-        duration: 5000,
-      })
-    }).catch(() => {
-      toast.error("Failed to copy to clipboard", {
-        duration: 5000,
-      })
-    })
+    navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+    showAlert(`${type} copied to clipboard!`)
+  }
+
+  const showAlert = (message: string) => {
+    // Create and show alert
+    const alertDiv = document.createElement('div')
+    alertDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50'
+    alertDiv.textContent = message
+    document.body.appendChild(alertDiv)
+
+    // Remove alert after 5 seconds
+    setTimeout(() => {
+      document.body.removeChild(alertDiv)
+    }, 5000)
   }
 
   const embedCode = selectedFormId ? generateEmbedCode(selectedFormId) : ""
@@ -79,16 +87,18 @@ export default function EmbedPage() {
             <CardDescription>Choose which form you want to embed on your website</CardDescription>
           </CardHeader>
           <CardContent>
-            <Select value={selectedFormId} onValueChange={setSelectedFormId}>
+            <Select value={selectedFormId || ""} onValueChange={setSelectedFormId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a form to embed" />
               </SelectTrigger>
               <SelectContent>
-                {forms.map((form) => (
+                {forms && forms.length > 0 ? forms.map((form) => (
                   <SelectItem key={form.id} value={form.id}>
-                    {form.title}
+                    {form.title || "Untitled Form"}
                   </SelectItem>
-                ))}
+                )) : (
+                  <SelectItem value="" disabled>No forms available</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </CardContent>

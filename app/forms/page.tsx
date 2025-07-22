@@ -132,21 +132,28 @@ export default function FormsPage() {
 
   const copyLiveUrl = (formId: string) => {
     const url = `${window.location.origin}/live/${formId}`
-    navigator.clipboard.writeText(url).then(() => {
-      toast.success("Live URL copied to clipboard!", { duration: 5000 })
-    }).catch(() => {
-      toast.error("Failed to copy URL")
-    })
+    navigator.clipboard.writeText(url)
+    showAlert("Live URL copied to clipboard!")
   }
 
   const copyEmbedCode = (formId: string) => {
     const embedCode = `<div id="formcraft-${formId}" data-formcraft-id="${formId}"></div>
 <script src="${window.location.origin}/embed.js"></script>`
-    navigator.clipboard.writeText(embedCode).then(() => {
-      toast.success("Embed code copied to clipboard!", { duration: 5000 })
-    }).catch(() => {
-      toast.error("Failed to copy embed code")
-    })
+    navigator.clipboard.writeText(embedCode)
+    showAlert("Embed code copied to clipboard!")
+  }
+
+  const showAlert = (message: string) => {
+    // Create and show alert
+    const alertDiv = document.createElement('div')
+    alertDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50'
+    alertDiv.textContent = message
+    document.body.appendChild(alertDiv)
+
+    // Remove alert after 5 seconds
+    setTimeout(() => {
+      document.body.removeChild(alertDiv)
+    }, 5000)
   }
 
   if (loading) {

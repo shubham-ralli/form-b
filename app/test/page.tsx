@@ -142,17 +142,17 @@ export default function TestPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <Select value={selectedFormId || ""} onValueChange={setSelectedFormId}>
+              <Select value={selectedFormId || "no-selection"} onValueChange={setSelectedFormId}>
                 <SelectTrigger className="w-64">
                   <SelectValue placeholder="Select a form to test" />
                 </SelectTrigger>
                 <SelectContent>
                   {forms && forms.length > 0 ? forms.map((form) => (
-                    <SelectItem key={form._id} value={form._id}>
+                    <SelectItem key={form.id} value={form.id}>
                       {form.title || "Untitled Form"}
                     </SelectItem>
                   )) : (
-                    <SelectItem value="" disabled>No forms available</SelectItem>
+                    <SelectItem value="no-forms" disabled>No forms available</SelectItem>
                   )}
                 </SelectContent>
               </Select>

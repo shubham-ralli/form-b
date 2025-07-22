@@ -97,7 +97,7 @@ export default function EmbedPage() {
                     {form.title || "Untitled Form"}
                   </SelectItem>
                 )) : (
-                  <SelectItem value="" disabled>No forms available</SelectItem>
+                  <SelectItem value="no-forms" disabled>No forms available</SelectItem>
                 )}
               </SelectContent>
             </Select>

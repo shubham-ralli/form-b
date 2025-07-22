@@ -50,10 +50,14 @@ export default function LiveFormPage() {
 
   const fetchForm = async (formId: string) => {
     try {
-      const response = await fetch(`/api/forms/${formId}`)
+      // Use public API endpoint that doesn't require authentication
+      const response = await fetch(`/api/forms/public?id=${formId}`)
       if (response.ok) {
-        const formData = await response.json()
-        if (!formData.isActive) {
+        const data = await response.json()
+        const formData = Array.isArray(data) ? data.find(f => f.id === formId) : data
+        if (!formData) {
+          setError("Form not found")
+        } else if (!formData.isActive) {
           setError("This form is currently inactive")
         } else {
           setForm(formData)

@@ -176,7 +176,7 @@ export default function FormsPage() {
             Create Form
           </Button>
         </div>
-      </div></div>
+      </div>
 
       {/* Search Bar */}
       <div className="mb-6">

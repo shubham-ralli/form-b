@@ -47,7 +47,6 @@ const navigation = [
   { name: "Test Forms", href: "/test", icon: Globe },
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Help", href: "/help", icon: HelpCircle },
-  { name: "Public Forms", href: "/public-forms", icon: Globe }, // Added public forms link
 ]
 
 const adminNavigation = [

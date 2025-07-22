@@ -26,6 +26,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 })
     }
 
+    // Check if account is disabled
+    if (user.isActive === false) {
+      return NextResponse.json({ error: "Account disabled. Please contact support." }, { status: 403 })
+    }
+
     const isValid = await verifyPassword(password, user.password)
     console.log("Password valid:", isValid) // Debug log
 

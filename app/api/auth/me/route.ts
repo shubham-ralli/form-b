@@ -26,6 +26,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    if (user.isActive === false) {
+      return NextResponse.json({ error: "Account disabled" }, { status: 403 })
+    }
+
     return NextResponse.json({
       id: user._id.toString(),
       email: user.email,

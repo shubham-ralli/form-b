@@ -20,6 +20,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const client = await clientPromise
     const db = client.db("formcraft")
     const users = db.collection("users")
+    const forms = db.collection("forms")
 
     // Check if current user is admin
     const currentUser = await users.findOne({ _id: new ObjectId(userId) })
@@ -29,6 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const { isActive } = await request.json()
 
+    // Update user status
     const result = await users.updateOne(
       { _id: new ObjectId(params.id) },
       { $set: { isActive: isActive } }
@@ -36,6 +38,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     if (result.matchedCount === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    // If disabling user, also disable all their forms
+    if (isActive === false) {
+      await forms.updateMany(
+        { userId: new ObjectId(params.id) },
+        { $set: { isActive: false } }
+      )
     }
 
     return NextResponse.json({ success: true })

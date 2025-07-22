@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { verifyToken } from "./lib/auth"
+import clientPromise from "./lib/mongodb"
+import { ObjectId } from "mongodb"
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes that don't require authentication
@@ -30,6 +33,38 @@ export function middleware(request: NextRequest) {
   // Simple token validation without JWT verification in middleware
   // We'll do proper verification in the API routes
   if (!token || token.length < 10) {
+    const response = NextResponse.redirect(new URL("/login", request.url))
+    response.cookies.delete("token")
+    return response
+  }
+
+  // Verify token and check user status
+  try {
+    const decoded = verifyToken(token)
+    if (decoded?.userId) {
+      const client = await clientPromise
+      const db = client.db("formcraft")
+      const users = db.collection("users")
+      
+      const user = await users.findOne({ _id: new ObjectId(decoded.userId) })
+      
+      if (!user) {
+        // User account deleted - redirect to login with error
+        const response = NextResponse.redirect(new URL("/login?error=account_deleted", request.url))
+        response.cookies.delete("token")
+        return response
+      }
+      
+      if (user.isActive === false) {
+        // User account disabled - redirect to login with error
+        const response = NextResponse.redirect(new URL("/login?error=account_disabled", request.url))
+        response.cookies.delete("token")
+        return response
+      }
+    }
+  } catch (error) {
+    console.error("Error checking user status:", error)
+    // If there's an error, redirect to login
     const response = NextResponse.redirect(new URL("/login", request.url))
     response.cookies.delete("token")
     return response

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -27,39 +26,12 @@ export default function FormsPage() {
   }, [forms, searchTerm])
 
   const handleCreateForm = async () => {
-    try {
-      // Create a new form with a better default name
-      const currentDate = new Date().toLocaleDateString()
-      const defaultFormData = {
-        title: `New Form - ${currentDate}`,
-        description: "Created with FormCraft",
-        elements: [],
-        submissionType: "message",
-        successMessageHtml: "<h3>Thank you for your submission!</h3><p>We have received your response.</p>",
-        isActive: true
-      }
+    // Generate a better default name
+    const now = new Date()
+    const formNumber = (forms?.length || 0) + 1
+    const defaultTitle = `Contact Form ${formNumber}`
 
-      const response = await fetch("/api/forms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(defaultFormData),
-      })
-
-      if (response.ok) {
-        const newForm = await response.json()
-        // Add to context immediately for better UX
-        addForm(newForm)
-        // Navigate to builder with the new form ID
-        window.location.href = `/builder?id=${newForm._id || newForm.formId}`
-      } else {
-        toast.error("Failed to create form")
-      }
-    } catch (error) {
-      console.error("Error creating form:", error)
-      toast.error("Error creating form")
-    }
+    window.location.href = `/builder?title=${encodeURIComponent(defaultTitle)}`
   }
 
   const handleDeleteForm = async (formId: string) => {
@@ -83,7 +55,7 @@ export default function FormsPage() {
   const handleToggleFormStatus = async (formId: string, isActive: boolean) => {
     // Update local state immediately for better UX
     updateForm(formId, { isActive: !isActive })
-    
+
     try {
       const response = await fetch(`/api/forms/${formId}/status`, {
         method: "PATCH",

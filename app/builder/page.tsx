@@ -605,7 +605,7 @@ function FormPreview({ formConfig }: { formConfig: FormConfig }) {
 
 export default function FormBuilder() {
   const [formConfig, setFormConfig] = useState<FormConfig>({
-    title: `New Form - ${new Date().toLocaleDateString()}`,
+    title: "Untitled Form",
     subtitle: "Created with FormCraft",
     elements: [],
     submissionType: "message",
@@ -619,12 +619,20 @@ export default function FormBuilder() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // Load existing form if editing
+  // Load existing form if editing or set title from URL
   useEffect(() => {
     const formId = searchParams.get("id")
+    const titleParam = searchParams.get("title")
+    
     if (formId) {
       setIsEditing(true)
       loadForm(formId)
+    } else if (titleParam) {
+      // Set title from URL parameter for new forms
+      setFormConfig(prev => ({
+        ...prev,
+        title: decodeURIComponent(titleParam)
+      }))
     }
   }, [searchParams])
 

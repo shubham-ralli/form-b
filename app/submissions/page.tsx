@@ -55,8 +55,12 @@ export default function SubmissionsPage() {
       const submissionsData = await submissionsResponse.json()
       const formsData = await formsResponse.json()
 
-      setSubmissions(submissionsData)
-      setForms(formsData)
+      // Handle both array response and object with forms property
+      const formsArray = Array.isArray(formsData) ? formsData : (formsData.forms || [])
+      const submissionsArray = Array.isArray(submissionsData) ? submissionsData : (submissionsData.submissions || [])
+
+      setForms(formsArray)
+      setSubmissions(submissionsArray)
     } catch (error) {
       console.error("Error fetching data:", error)
     } finally {

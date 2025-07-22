@@ -36,8 +36,12 @@ export default function AnalyticsPage() {
       const formsData = await formsResponse.json()
       const submissionsData = await submissionsResponse.json()
 
-      setForms(formsData)
-      setSubmissions(submissionsData)
+      // Handle both array response and object with forms property
+      const formsArray = Array.isArray(formsData) ? formsData : (formsData.forms || [])
+      const submissionsArray = Array.isArray(submissionsData) ? submissionsData : (submissionsData.submissions || [])
+      
+      setForms(formsArray)
+      setSubmissions(submissionsArray)
     } catch (error) {
       console.error("Error fetching data:", error)
     } finally {

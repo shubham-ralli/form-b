@@ -97,7 +97,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ...newForm,
-        id: result.insertedId.toString(),
+        formId: result.insertedId.toString(),
+        _id: result.insertedId.toString(),
       },
       { status: 201 },
     )

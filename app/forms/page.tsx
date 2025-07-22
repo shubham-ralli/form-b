@@ -202,7 +202,7 @@ export default function FormsPage() {
                   </CardTitle>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-sm text-gray-600">
-                      {form.elements?.length || 0} fields
+                      {(form.elements && Array.isArray(form.elements) ? form.elements.length : 0)} fields
                     </span>
                     <span className="text-gray-400">•</span>
                     <span className="text-sm text-gray-600">

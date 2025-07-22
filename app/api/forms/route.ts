@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
           createdAt: form.createdAt || new Date().toISOString(),
           updatedAt: form.updatedAt || new Date().toISOString(),
           submissionCount: submissionCount || 0,
-          userId: form.userId
+          userId: form.userId,
+          elements: form.elements || []
         }
       }),
     )

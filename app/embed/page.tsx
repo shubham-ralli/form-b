@@ -40,6 +40,11 @@ export default function EmbedPage() {
       // Handle both array response and object with forms property
       const formsData = Array.isArray(data) ? data : (data.forms || [])
       setForms(formsData)
+      
+      // Auto-select first form if formId not in URL params
+      if (formsData.length > 0 && !searchParams.get("formId")) {
+        setSelectedFormId(formsData[0]._id || formsData[0].id)
+      }
     } catch (error) {
       console.error("Error fetching forms:", error)
       setForms([])
@@ -93,11 +98,11 @@ export default function EmbedPage() {
               </SelectTrigger>
               <SelectContent>
                 {forms && forms.length > 0 ? forms.map((form) => (
-                  <SelectItem key={form.id} value={form.id}>
+                  <SelectItem key={form._id || form.id} value={form._id || form.id}>
                     {form.title || "Untitled Form"}
                   </SelectItem>
                 )) : (
-                  <SelectItem value="no-forms" disabled>No forms available</SelectItem>
+                  <SelectItem value="no-forms-available" disabled>No forms available</SelectItem>
                 )}
               </SelectContent>
             </Select>

@@ -26,7 +26,7 @@ export default function TestPage() {
       const formsData = Array.isArray(data) ? data : (data.forms || [])
       setForms(formsData)
       if (formsData.length > 0) {
-        setSelectedFormId(formsData[0]._id)
+        setSelectedFormId(formsData[0]._id || formsData[0].id)
       }
     } catch (error) {
       console.error("Error fetching forms:", error)
@@ -142,17 +142,17 @@ export default function TestPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <Select value={selectedFormId || "no-selection"} onValueChange={setSelectedFormId}>
+              <Select value={selectedFormId || ""} onValueChange={setSelectedFormId}>
                 <SelectTrigger className="w-64">
                   <SelectValue placeholder="Select a form to test" />
                 </SelectTrigger>
                 <SelectContent>
                   {forms && forms.length > 0 ? forms.map((form) => (
-                    <SelectItem key={form.id} value={form.id}>
+                    <SelectItem key={form._id || form.id} value={form._id || form.id}>
                       {form.title || "Untitled Form"}
                     </SelectItem>
                   )) : (
-                    <SelectItem value="no-forms" disabled>No forms available</SelectItem>
+                    <SelectItem value="no-forms-available" disabled>No forms available</SelectItem>
                   )}
                 </SelectContent>
               </Select>

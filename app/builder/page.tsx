@@ -605,11 +605,13 @@ function FormPreview({ formConfig }: { formConfig: FormConfig }) {
 
 export default function FormBuilder() {
   const [formConfig, setFormConfig] = useState<FormConfig>({
-    title: "Untitled Form",
+    title: `New Form - ${new Date().toLocaleDateString()}`,
+    subtitle: "Created with FormCraft",
     elements: [],
     submissionType: "message",
     successMessageHtml: "<h3>Thank you for your submission!</h3><p>We have received your response.</p>",
     isActive: true,
+    buttonText: "Submit Form"
   })
   const [showPreview, setShowPreview] = useState(false)
   const [loading, setLoading] = useState(false)

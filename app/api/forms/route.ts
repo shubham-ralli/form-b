@@ -16,31 +16,67 @@ export async function GET(request: NextRequest) {
     const client = await clientPromise
     const db = client.db("formcraft")
     const forms = db.collection("forms")
-    const users = db.collection("users")
 
-    // Always get only current user's forms
-    const userForms = await forms.find({ userId: new ObjectId(userId) }).toArray()
-
-    // Get submission counts for each form
-    const submissions = db.collection("submissions")
-    const formsWithCounts = await Promise.all(
-      userForms.map(async (form) => {
-        const submissionCount = await submissions.countDocuments({ formId: form._id.toString() })
-        return {
-          _id: form._id.toString(),
-          title: form.title || "Untitled Form",
-          description: form.description || "",
-          isActive: form.isActive !== false,
-          createdAt: form.createdAt || new Date().toISOString(),
-          updatedAt: form.updatedAt || new Date().toISOString(),
-          submissionCount: submissionCount || 0,
-          userId: form.userId,
-          elements: form.elements || []
+    // Optimize query with projection and sorting
+    const userForms = await forms
+      .find(
+        { userId: new ObjectId(userId) },
+        {
+          projection: {
+            title: 1,
+            description: 1,
+            isActive: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            elements: 1,
+            userId: 1
+          }
         }
-      }),
-    )
+      )
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .toArray()
 
-    return NextResponse.json({ forms: formsWithCounts })
+    // Get submission counts in batch for better performance
+    const submissions = db.collection("submissions")
+    const formIds = userForms.map(form => form._id.toString())
+    
+    const submissionCounts = await submissions.aggregate([
+      {
+        $match: {
+          formId: { $in: formIds }
+        }
+      },
+      {
+        $group: {
+          _id: "$formId",
+          count: { $sum: 1 }
+        }
+      }
+    ]).toArray()
+
+    const submissionMap = submissionCounts.reduce((acc, item) => {
+      acc[item._id] = item.count
+      return acc
+    }, {} as Record<string, number>)
+
+    const formsWithCounts = userForms.map((form) => ({
+      _id: form._id.toString(),
+      title: form.title || `Form - ${new Date(form.createdAt).toLocaleDateString()}`,
+      description: form.description || "",
+      isActive: form.isActive !== false,
+      createdAt: form.createdAt || new Date().toISOString(),
+      updatedAt: form.updatedAt || new Date().toISOString(),
+      submissionCount: submissionMap[form._id.toString()] || 0,
+      userId: form.userId,
+      elements: form.elements || []
+    }))
+
+    const response = NextResponse.json({ forms: formsWithCounts })
+    
+    // Add cache headers for better performance
+    response.headers.set('Cache-Control', 'private, max-age=60, stale-while-revalidate=120')
+    
+    return response
   } catch (error) {
     console.error("Error fetching forms:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

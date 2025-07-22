@@ -43,9 +43,12 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const fetchForms = useCallback(async (force = false) => {
-    // Check cache first
+    // Check cache first and if it's fresh (less than 5 minutes old)
     const cachedForms = storage.getForms()
-    if (!force && cachedForms) {
+    const cacheAge = Date.now() - lastFetch
+    const isCacheFresh = cacheAge < 5 * 60 * 1000 // 5 minutes
+    
+    if (!force && cachedForms && cachedForms.length > 0 && isCacheFresh) {
       setForms(cachedForms)
       setLoading(false)
       return
@@ -55,12 +58,24 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       setError(null)
       
-      const response = await fetch("/api/forms")
+      const response = await fetch("/api/forms", {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      })
+      
       if (response.ok) {
         const data = await response.json()
         const formsData = Array.isArray(data) ? data : (data.forms || [])
-        setForms(formsData)
-        storage.setForms(formsData) // Cache the data
+        
+        // Sort forms by most recent first
+        const sortedForms = formsData.sort((a, b) => 
+          new Date(b.createdAt || b.updatedAt).getTime() - new Date(a.createdAt || a.updatedAt).getTime()
+        )
+        
+        setForms(sortedForms)
+        storage.setForms(sortedForms)
         setLastFetch(Date.now())
       } else {
         setError("Failed to fetch forms")
@@ -68,10 +83,15 @@ export function FormsProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error fetching forms:", error)
       setError("Error fetching forms")
+      // Fallback to cached data if available
+      if (cachedForms && cachedForms.length > 0) {
+        setForms(cachedForms)
+        setError(null)
+      }
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [lastFetch])
 
   const refreshForms = useCallback(async () => {
     await fetchForms(true)

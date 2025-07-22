@@ -26,9 +26,40 @@ export default function FormsPage() {
     setFilteredForms(filtered)
   }, [forms, searchTerm])
 
-  const handleCreateForm = () => {
-    // Redirect directly to builder page
-    window.location.href = '/builder'
+  const handleCreateForm = async () => {
+    try {
+      // Create a new form with a better default name
+      const currentDate = new Date().toLocaleDateString()
+      const defaultFormData = {
+        title: `New Form - ${currentDate}`,
+        description: "Created with FormCraft",
+        elements: [],
+        submissionType: "message",
+        successMessageHtml: "<h3>Thank you for your submission!</h3><p>We have received your response.</p>",
+        isActive: true
+      }
+
+      const response = await fetch("/api/forms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(defaultFormData),
+      })
+
+      if (response.ok) {
+        const newForm = await response.json()
+        // Add to context immediately for better UX
+        addForm(newForm)
+        // Navigate to builder with the new form ID
+        window.location.href = `/builder?id=${newForm._id || newForm.formId}`
+      } else {
+        toast.error("Failed to create form")
+      }
+    } catch (error) {
+      console.error("Error creating form:", error)
+      toast.error("Error creating form")
+    }
   }
 
   const handleDeleteForm = async (formId: string) => {
@@ -130,8 +161,26 @@ export default function FormsPage() {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading forms...</div>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-bold">My Forms</h1>
+          <Button disabled>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Form
+          </Button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-3 bg-gray-200 rounded w-full mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-24"></div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     )

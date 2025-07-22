@@ -12,12 +12,6 @@ import { AlertTriangle } from "lucide-react"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata: Metadata = {
-  title: "FormCraft - Advanced Form Builder",
-  description: "Create beautiful, responsive forms with drag-and-drop simplicity",
-    generator: 'v0.dev'
-}
-
 function UserStatusChecker({ children }: { children: React.ReactNode }) {
   const [userStatus, setUserStatus] = useState<{ isActive: boolean; message?: string } | null>(null)
   const [loading, setLoading] = useState(true)

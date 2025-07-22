@@ -29,7 +29,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const isLivePage = pathname.startsWith("/live/")
 
   useEffect(() => {
-    if (publicPages.includes(pathname) || isLivePage) {
+    if (publicPages.includes(pathname)) {
       setLoading(false)
       return
     }
@@ -65,8 +65,8 @@ export function MainLayout({ children }: MainLayoutProps) {
     )
   }
 
-  // Render public pages and live form pages without sidebar
-  if (publicPages.includes(pathname) || isLivePage) {
+  // Render public pages without sidebar
+  if (publicPages.includes(pathname)) {
     return <>{children}</>
   }
 

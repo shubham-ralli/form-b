@@ -1,12 +1,5 @@
 
-<old_str>export default function LiveFormLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return <>{children}</>
-}</old_str>
-<new_str>"use client"
+"use client"
 
 export default function LiveFormLayout({
   children,
@@ -15,9 +8,9 @@ export default function LiveFormLayout({
 }) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <main className="w-full">
         {children}
-      </div>
+      </main>
     </div>
   )
-}</new_str>
+}

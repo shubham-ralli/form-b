@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -51,7 +52,7 @@ export default function FormsPage() {
   const handleToggleFormStatus = async (formId: string, isActive: boolean) => {
     // Update local state immediately for better UX
     updateForm(formId, { isActive: !isActive })
-
+    
     try {
       const response = await fetch(`/api/forms/${formId}/status`, {
         method: "PATCH",

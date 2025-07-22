@@ -12,6 +12,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Validate the user ID parameter
+    if (!params.id || params.id === 'undefined' || params.id.length !== 24) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
+    }
+
     const client = await clientPromise
     const db = client.db("formcraft")
     const users = db.collection("users")
@@ -45,6 +50,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const userId = await getUserIdFromRequest(request)
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Validate the user ID parameter
+    if (!params.id || params.id === 'undefined' || params.id.length !== 24) {
+      return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
     }
 
     const client = await clientPromise

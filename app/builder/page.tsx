@@ -17,6 +17,8 @@ import { Trash2, Settings, Save, Eye, Plus, X } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils" // Corrected import path
 import { Badge } from "@/components/ui/badge"
+import { useForms } from "@/contexts/FormsContext"
+import { toast } from "sonner"
 
 interface FormElement {
   id: string
@@ -604,6 +606,7 @@ function FormPreview({ formConfig }: { formConfig: FormConfig }) {
 }
 
 export default function FormBuilder() {
+  const { addForm, updateForm } = useForms()
   const [formConfig, setFormConfig] = useState<FormConfig>({
     title: "Untitled Form",
     subtitle: "Created with FormCraft",
@@ -690,22 +693,22 @@ export default function FormBuilder() {
 
   const handleSaveForm = async () => {
     if (!formConfig.title.trim()) {
-      alert("Please enter a form title")
+      toast.error("Please enter a form title")
       return
     }
 
     if (formConfig.elements.length === 0) {
-      alert("Please add at least one form element")
+      toast.error("Please add at least one form element")
       return
     }
 
     if (formConfig.submissionType === "redirect" && !formConfig.redirectUrl?.trim()) {
-      alert("Please enter a redirect URL")
+      toast.error("Please enter a redirect URL")
       return
     }
 
     if (formConfig.submissionType === "message" && !formConfig.successMessageHtml?.trim()) {
-      alert("Please enter a success message HTML")
+      toast.error("Please enter a success message HTML")
       return
     }
 
@@ -715,27 +718,59 @@ export default function FormBuilder() {
       const url = isEditing ? `/api/forms/${formConfig.id}` : "/api/forms"
       const method = isEditing ? "PUT" : "POST"
 
+      const formData = {
+        title: formConfig.title,
+        description: formConfig.subtitle || "",
+        elements: formConfig.elements,
+        submissionType: formConfig.submissionType,
+        redirectUrl: formConfig.redirectUrl,
+        successMessageHtml: formConfig.successMessageHtml,
+        isActive: formConfig.isActive,
+      }
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: formConfig.title,
-          elements: formConfig.elements,
-          submissionType: formConfig.submissionType,
-          redirectUrl: formConfig.redirectUrl,
-          successMessageHtml: formConfig.successMessageHtml,
-          isActive: formConfig.isActive,
-        }),
+        body: JSON.stringify(formData),
       })
 
       if (response.ok) {
-        alert(`Form ${isEditing ? "updated" : "saved"} successfully!`)
+        const result = await response.json()
+        
+        if (isEditing) {
+          // Update existing form in context
+          updateForm(formConfig.id!, {
+            title: formData.title,
+            description: formData.description,
+            elements: formData.elements,
+            isActive: formData.isActive,
+            updatedAt: new Date().toISOString()
+          })
+          toast.success("Form updated successfully!")
+        } else {
+          // Add new form to context
+          const newForm = {
+            _id: result._id || result.formId,
+            title: formData.title,
+            description: formData.description,
+            elements: formData.elements,
+            isActive: formData.isActive,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            submissionCount: 0
+          }
+          addForm(newForm)
+          toast.success("Form created successfully!")
+        }
+        
         router.push("/forms")
       } else {
-        throw new Error(`Failed to ${isEditing ? "update" : "save"} form`)
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Failed to ${isEditing ? "update" : "save"} form`)
       }
     } catch (error) {
-      alert(`Error ${isEditing ? "updating" : "saving"} form`)
+      const errorMessage = error instanceof Error ? error.message : `Error ${isEditing ? "updating" : "saving"} form`
+      toast.error(errorMessage)
       console.error(error)
     } finally {
       setLoading(false)
